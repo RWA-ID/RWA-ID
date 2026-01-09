@@ -137,3 +137,18 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+# Environment variables
+.env
+.env.*
+
+# Replit
+.replit
+.replit.nix
+
+# Build output
+dist
+build
+out
+
+# IPFS
+.ipfs
