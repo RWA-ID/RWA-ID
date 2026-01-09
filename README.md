@@ -23,3 +23,5 @@ Screen recording available upon request.
 
 ## License
 MIT
+## 📄 Whitepaper
+- https://github.com/rwa-id/RWA-ID/blob/main/whitepaper.md
