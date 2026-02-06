@@ -129,7 +129,7 @@ The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/ei
 
 Try resolving in any supported wallet:
 ```
-hector.testproject2025.rwa-id.eth
+joe.test.rwa-id.eth
 ```
 
 ---
