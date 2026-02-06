@@ -10,7 +10,7 @@
 **RWA ID** is a non-custodial identity layer that enables RWA platforms to issue human-readable, soulbound ENS subdomains for clients, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and dApps.
 
 ```
-client.platform.rwa-id.eth
+joe.test.rwa-id.eth
 ```
 
 ---
