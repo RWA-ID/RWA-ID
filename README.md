@@ -297,7 +297,7 @@ We are actively seeking **design partner platforms** to shape v2 development:
 
 ## 📄 License
 
-Copyright © 2025 RWA ID. All rights reserved.
+MIT
 
 ---
 
