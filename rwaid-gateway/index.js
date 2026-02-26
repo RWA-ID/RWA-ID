@@ -51,13 +51,16 @@ const app = express();
 // CORS middleware - must be before all routes
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, X-Requested-With");
+  res.setHeader("Access-Control-Max-Age", "86400");
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
   next();
 });
+
+app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.json({ ok: true, service: "rwaid-gateway" });
@@ -173,7 +176,7 @@ function dnsBytesToName(nameBytesHex) {
   return labels.join(".");
 }
 
-app.get("/:sender/:data.json", async (req, res) => {
+async function handleCcipRead(req, res) {
   try {
     const rawData = req.params.data;
     const dataHex = rawData.startsWith("0x") ? rawData : "0x" + rawData;
@@ -217,9 +220,13 @@ app.get("/:sender/:data.json", async (req, res) => {
     // ENS clients accept JSON: { data: "0x..." }
     res.send(JSON.stringify({ data: encoded, signer: SIGNER_ADDRESS }));
   } catch (e) {
-    res.status(500).send(e.message || String(e));
+    console.error("CCIP-Read error:", e.message || String(e));
+    res.status(500).json({ error: e.message || String(e) });
   }
-});
+}
+
+app.get("/:sender/:data.json", handleCcipRead);
+app.post("/:sender/:data.json", handleCcipRead);
 
 app.listen(PORT, () => {
   console.log(`rwaid-gateway listening on :${PORT}`);
