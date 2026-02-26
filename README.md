@@ -121,7 +121,7 @@ This approach minimizes gas costs by avoiding on-chain storage of all client add
 
 ### CCIP-Read Gateway
 
-**Gateway URL:** `https://rwaid-gatewayzip--nftworldeth.replit.app/{sender}/{data}.json`
+**Gateway URL:** `https://gateway.rwa-id.com/{sender}/{data}.json`
 
 The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668) to enable off-chain computation with on-chain verification, allowing efficient resolution of identities across the ENS ecosystem.
 
