@@ -59,6 +59,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (_req, res) => {
+  res.json({ ok: true, service: "rwaid-gateway" });
+});
+
 app.get("/health", async (_req, res) => {
   try {
     const network = await provider.getNetwork();
