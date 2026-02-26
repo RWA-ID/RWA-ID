@@ -115,11 +115,9 @@ app.get('/resolve', async (req, res) => {
 
 app.get('/:sender/:data.json', async (req, res) => {
   try {
-    const { sender, data } = req.params;
-    
-    if (!data.startsWith('0x')) {
-      return res.status(400).json({ error: 'Invalid data format' });
-    }
+    const { sender } = req.params;
+    const rawData = req.params.data;
+    const data = rawData.startsWith('0x') ? rawData : '0x' + rawData;
 
     const dataBytes = ethers.getBytes(data);
     const abiCoder = ethers.AbiCoder.defaultAbiCoder();

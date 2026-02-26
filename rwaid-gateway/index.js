@@ -175,10 +175,8 @@ function dnsBytesToName(nameBytesHex) {
 
 app.get("/:sender/:data.json", async (req, res) => {
   try {
-    const dataHex = req.params.data;
-    if (!dataHex || !dataHex.startsWith("0x")) {
-      return res.status(400).send("data must be 0x...");
-    }
+    const rawData = req.params.data;
+    const dataHex = rawData.startsWith("0x") ? rawData : "0x" + rawData;
 
     // Decode callData = abi.encode(bytes name, bytes data)
     const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
