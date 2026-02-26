@@ -27,7 +27,7 @@ console.log("GATEWAY SIGNER ADDRESS:", signer.address);
 const REGISTRY_ABI = [
   'function projectIdBySlugHash(bytes32) view returns (uint256)',
   'function nameNodeFromHash(uint256,bytes32) view returns (bytes32)',
-  'function nodeAddr(bytes32) view returns (address)'
+  'function resolveAddr(bytes32) view returns (address)'
 ];
 
 const registry = new ethers.Contract(RWA_ID_REGISTRY, REGISTRY_ABI, provider);
@@ -67,7 +67,7 @@ async function resolveName(fullName) {
   }
 
   const node = await registry.nameNodeFromHash(projectId, nameHash);
-  const addr = await registry.nodeAddr(node);
+  const addr = await registry.resolveAddr(node);
 
   const messageHash = ethers.solidityPackedKeccak256(
     ['address', 'bytes32', 'address'],
@@ -145,7 +145,7 @@ app.get('/:sender/:data.json', async (req, res) => {
     }
 
     const node = await registry.nameNodeFromHash(projectId, nameHash);
-    const addr = await registry.nodeAddr(node);
+    const addr = await registry.resolveAddr(node);
 
     const messageHash = ethers.solidityPackedKeccak256(
       ['address', 'bytes32', 'address'],

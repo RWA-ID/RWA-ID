@@ -23,7 +23,7 @@ console.log("GATEWAY SIGNER ADDRESS:", SIGNER_ADDRESS);
 const REGISTRY_ABI = [
   "function projectIdBySlugHash(bytes32) view returns (uint256)",
   "function nameNodeFromHash(uint256,bytes32) view returns (bytes32)",
-  "function nodeAddr(bytes32) view returns (address)",
+  "function resolveAddr(bytes32) view returns (address)",
 ];
 
 const registry = new ethers.Contract(REGISTRY, REGISTRY_ABI, provider);
@@ -93,7 +93,7 @@ app.get("/resolve", async (req, res) => {
     if (projectId === 0n) return res.status(404).json({ error: "Unknown slug/project", slug });
 
     const node = await registry.nameNodeFromHash(projectId, nameHash);
-    const addr = await registry.nodeAddr(node);
+    const addr = await registry.resolveAddr(node);
 
     const messageHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
@@ -132,7 +132,7 @@ app.get("/ccip", async (req, res) => {
     if (projectId === 0n) return res.status(404).send("Unknown slug/project");
 
     const node = await registry.nameNodeFromHash(projectId, nameHash);
-    const addr = await registry.nodeAddr(node);
+    const addr = await registry.resolveAddr(node);
 
     const messageHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
@@ -199,7 +199,7 @@ app.get("/:sender/:data.json", async (req, res) => {
     if (projectId === 0n) return res.status(404).send("Unknown slug/project");
 
     const node = await registry.nameNodeFromHash(projectId, nameHash);
-    const addr = await registry.nodeAddr(node);
+    const addr = await registry.resolveAddr(node);
 
     const messageHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
