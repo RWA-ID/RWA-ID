@@ -73,15 +73,15 @@ RWA ID provides neutral, shared identity infrastructure that:
 
 ### Revenue Sharing Model
 
-```
-Platform sets optional per-claim fee (e.g., $1.00 USDC)
-                    ↓
-         Protocol enforces split on-chain:
-         ┌────────────────────┐
-         │   70% → Platform   │
-         │   30% → RWA ID     │
-         └────────────────────┘
-```
+Every claim pays a USDC fee — always split 70/30 on-chain between the platform treasury and RWA ID. The fee amount depends on whether the platform set one:
+
+| Scenario | Effective Fee | Platform (70%) | RWA ID (30%) |
+|----------|--------------|----------------|--------------|
+| Platform sets no fee | $0.50 minimum enforced by contract | $0.35 | $0.15 |
+| Platform sets $1.00 | $1.00 | $0.70 | $0.30 |
+| Platform sets $5.00 | $5.00 | $3.50 | $1.50 |
+
+The $0.50 minimum is enforced at the contract level — it cannot be bypassed. If a platform sets `claimFee = 0`, the contract automatically applies the minimum and distributes it with the same 70/30 split.
 
 ---
 
