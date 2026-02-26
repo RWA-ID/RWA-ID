@@ -32,7 +32,7 @@ RWA platforms today face critical identity infrastructure challenges:
 
 RWA ID provides neutral, shared identity infrastructure that:
 
-- ✅ **Issues human-readable names** (e.g., `alice.securitize.rwa-id.eth`)
+- ✅ **Issues human-readable names** (e.g., `joe.test.rwa-id.eth`)
 - ✅ **Resolves in all major wallets** (MetaMask, Trust, Rainbow, Uniswap)
 - ✅ **USDC claim fees** with automatic 70/30 platform/protocol split on-chain
 - ✅ **Soulbound or transferable** — configurable per project
@@ -59,7 +59,7 @@ RWA ID provides neutral, shared identity infrastructure that:
 
 1. **Create Project Namespace**
    - Platform connects wallet at [rwa-id.com](https://rwa-id.com)
-   - Registers namespace (e.g., `securitize.rwa-id.eth`) — free to create
+   - Registers namespace (e.g., `test.rwa-id.eth`) — free to create
    - Optionally sets a USDC claim fee (70% goes to platform treasury)
 
 2. **Upload Allowlist**
@@ -118,7 +118,7 @@ The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/ei
 │   Wallet    │
 │  (User)     │
 └──────┬──────┘
-       │ Resolve: alice.securitize.rwa-id.eth
+       │ Resolve: joe.test.rwa-id.eth
        ↓
 ┌──────────────────┐
 │  ENS Registry    │
@@ -181,8 +181,8 @@ contracts/
   RWAIDv2.sol                    — Main v2 registry (ERC-721 + USDC fees + Merkle allowlist)
   RwaIdWildcardResolverV2.sol    — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
   mocks/MockUSDC.sol             — Test USDC (Sepolia only)
-  RwaIdRegistry.sol              — v1 contract (Linea, legacy)
-  RwaIdWildcardResolver.sol      — v1 resolver (Linea, legacy)
+  RwaIdRegistry.sol              — v1 contract (legacy)
+  RwaIdWildcardResolver.sol      — v1 resolver (legacy)
 scripts/
   deploy-mainnet.js              — Deploy to Ethereum mainnet
   deploy-sepolia.js              — Deploy to Sepolia testnet
