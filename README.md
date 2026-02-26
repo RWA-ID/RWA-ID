@@ -5,12 +5,12 @@
 [![Website](https://img.shields.io/badge/Website-rwa--id.com-00BCD4?style=flat-square)](https://rwa-id.com)
 [![Whitepaper](https://img.shields.io/badge/Whitepaper-Read-00BCD4?style=flat-square)](https://github.com/rwa-id/RWA-ID/blob/main/whitepaper.md)
 [![Technical Docs](https://img.shields.io/badge/Technical-Overview-00BCD4?style=flat-square)](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
-[![Status](https://img.shields.io/badge/Status-Live%20on%20Linea-success?style=flat-square)](https://rwa-id.com)
+[![Status](https://img.shields.io/badge/Status-Live%20on%20Mainnet-success?style=flat-square)](https://rwa-id.com)
 
 **RWA ID** is a non-custodial identity layer that enables RWA platforms to issue human-readable, soulbound ENS subdomains for clients, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and dApps.
 
 ```
-joe.test.rwa-id.eth
+alice.securitize.rwa-id.eth
 ```
 
 ---
@@ -33,194 +33,165 @@ RWA platforms today face critical identity infrastructure challenges:
 RWA ID provides neutral, shared identity infrastructure that:
 
 - ✅ **Issues human-readable names** (e.g., `alice.securitize.rwa-id.eth`)
-- ✅ **Works across all major chains** (Ethereum, Linea, Base, Optimism, Arbitrum, Polygon)
 - ✅ **Resolves in all major wallets** (MetaMask, Trust, Rainbow, Uniswap)
+- ✅ **USDC claim fees** with automatic 70/30 platform/protocol split on-chain
+- ✅ **Soulbound or transferable** — configurable per project
 - ✅ **Requires no custody** or personal data collection
-- ✅ **Uses proven standards** (ENS + EIP-3668)
+- ✅ **Uses proven standards** (ENS + EIP-3668 CCIP-Read)
 
 ---
 
 ## 🚀 Status
 
-**v1 is live on Linea mainnet** (15 days in production)
+**v2 is live on Ethereum mainnet**
 
-- ✅ Production-ready smart contracts deployed
-- ✅ Platform creation and CSV upload functional
-- ✅ Client claiming portal operational
-- ✅ Multi-chain resolution working
-- 🔄 Currently seeking design partner platforms
+- ✅ Production contracts deployed and verified on Etherscan
+- ✅ 25 top RWA platform slugs reserved
+- ✅ CCIP-Read gateway live at `gateway.rwa-id.com`
+- ✅ ENS wildcard resolver active — names resolve in MetaMask & Trust Wallet
+- ✅ Platform console and client claim portal operational
 
 ---
 
 ## 📋 How It Works
 
-### For Platforms (5-Step Integration)
+### For Platforms (3-Step Integration)
 
 1. **Create Project Namespace**
    - Platform connects wallet at [rwa-id.com](https://rwa-id.com)
-   - Registers namespace (e.g., `yourplatform.rwa-id.eth`)
-   - One-time cost: **0.0005 ETH**
+   - Registers namespace (e.g., `securitize.rwa-id.eth`) — free to create
+   - Optionally sets a USDC claim fee (70% goes to platform treasury)
 
 2. **Upload Allowlist**
    - Submit CSV mapping names to wallet addresses
-   - Format: `name,address`
+   - System computes Merkle root and commits it on-chain
 
-3. **Set Merkle Root**
-   - System computes Merkle root from allowlist
-   - Root is committed on-chain for verifiable claims
-   - No pre-minting required
-
-4. **Clients Claim Identities**
-   - Users visit [rwa-id.com/claim](https://rwa-id.com/claim)
-   - Connect wallet and auto-detect eligibility
-   - Pay minimal gas (< $0.10 on Linea)
-
-5. **Universal Resolution**
-   - Identities resolve immediately across all supported chains and wallets
+3. **Clients Claim Identities**
+   - Users visit the claim portal, connect wallet, pay optional USDC fee
+   - Identity NFT minted — resolves immediately across all ENS wallets
    - Format: `client.yourplatform.rwa-id.eth`
-
-### Example: Verifying Client Eligibility
-
-Platforms can verify client membership on-chain using Merkle proofs:
-
-```solidity
-// Pseudocode for client eligibility verification
-function verifyClient(
-    bytes32[] calldata proof,
-    address clientAddress,
-    string calldata name
-) public view returns (bool) {
-    // Compute leaf node from client data
-    bytes32 leaf = keccak256(abi.encodePacked(name, clientAddress));
-    
-    // Verify Merkle proof against stored root
-    bytes32 merkleRoot = projectMerkleRoots[projectId];
-    
-    return MerkleProof.verify(proof, merkleRoot, leaf);
-}
-
-// Example usage
-require(
-    verifyClient(proof, msg.sender, "client"),
-    "Client not eligible for this platform"
-);
-```
-
-This approach minimizes gas costs by avoiding on-chain storage of all client addresses.
-
----
-
-## 📡 Deployed Contracts
-
-### Linea Mainnet
-
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| **Core Contract** | [`0x74aaCeff8139c84433befB922a8E687B6ba51F3a`](https://lineascan.build/address/0x74aaCeff8139c84433befB922a8E687B6ba51F3a) | Project creation, Merkle root management, claims |
-| **ENS Wildcard Resolver** | [`0x188a60a8bC5Df96CD12C64FBAf166075a5029c80`](https://lineascan.build/address/0x188a60a8bC5Df96CD12C64FBAf166075a5029c80) | EIP-3668 CCIP-Read resolver for identity resolution |
-
-### CCIP-Read Gateway
-
-**Gateway URL:** `https://gateway.rwa-id.com/{sender}/{data}.json`
-
-The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668) to enable off-chain computation with on-chain verification, allowing efficient resolution of identities across the ENS ecosystem.
-
-### Example Working Name
-
-Try resolving in any supported wallet:
-```
-joe.test.rwa-id.eth
-```
-
----
-
-## 🌐 Multi-Chain Support
-
-RWA ID identities resolve across multiple networks:
-
-| Network | Status | Chain ID |
-|---------|--------|----------|
-| Ethereum | ✅ Live | 1 |
-| Linea | ✅ Live | 59144 |
-| Base | ✅ Live | 8453 |
-| Optimism | ✅ Live | 10 |
-| Arbitrum | ✅ Live | 42161 |
-| Polygon | ✅ Live | 137 |
-
-### Wallet Compatibility
-
-- MetaMask
-- Trust Wallet
-- Rainbow
-- Uniswap Wallet
-- Any ENS-compatible wallet
-
----
-
-## 🏗️ Architecture
-
-RWA ID uses a **wildcard resolver pattern** with off-chain proof verification:
-
-```
-┌─────────────┐
-│   Wallet    │
-│  (User)     │
-└──────┬──────┘
-       │ Resolve: client.platform.rwa-id.eth
-       ↓
-┌──────────────────┐
-│  ENS Registry    │
-│  (On-chain)      │
-└──────┬───────────┘
-       │ Wildcard Resolver: 0x188a...
-       ↓
-┌──────────────────┐
-│ CCIP-Read        │
-│ Gateway          │
-│ (Off-chain)      │
-└──────┬───────────┘
-       │ Fetch proof + metadata
-       ↓
-┌──────────────────┐
-│ Wallet displays: │
-│ ✓ client.platform│
-│   .rwa-id.eth    │
-└──────────────────┘
-```
-
-For detailed technical documentation, see our [Technical Overview](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa).
-
----
-
-## 💰 v2 Roadmap: Protocol-Enforced Monetization
-
-The v2 upgrade introduces sustainable economics with fully on-chain enforcement:
 
 ### Revenue Sharing Model
 
 ```
-Platform sets optional per-claim fee (e.g., $1.00 or less)
+Platform sets optional per-claim fee (e.g., $1.00 USDC)
                     ↓
-         Protocol enforces split:
+         Protocol enforces split on-chain:
          ┌────────────────────┐
          │   70% → Platform   │
          │   30% → RWA ID     │
          └────────────────────┘
 ```
 
-**Key Benefits:**
-- ✅ No off-chain accounting required
-- ✅ No trust assumptions between parties
-- ✅ Fully automated revenue distribution
-- ✅ Transparent and verifiable on-chain
+---
 
-### v2 Timeline
+## 📡 Deployed Contracts
 
-Before rolling out v2 broadly, we are seeking **at least one production RWA platform partner** to:
-- Validate technical integration flow
-- Refine UX based on actual usage patterns
-- Gather feedback on monetization models
-- Build case studies for subsequent integrators
+### Ethereum Mainnet
+
+| Contract | Address |
+|----------|---------|
+| **RWAIDv2** | [`0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2`](https://etherscan.io/address/0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2) |
+| **Wildcard Resolver v2** | [`0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1`](https://etherscan.io/address/0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1) |
+| **USDC** | [`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) |
+
+### Sepolia Testnet
+
+| Contract | Address |
+|----------|---------|
+| **RWAIDv2** | [`0xb0b023c9eD18dCD573B8befC851974f20126ab92`](https://sepolia.etherscan.io/address/0xb0b023c9eD18dCD573B8befC851974f20126ab92) |
+| **Wildcard Resolver v2** | [`0xE591Cbe3802e3E4908731E3D4B056cd8b08AE520`](https://sepolia.etherscan.io/address/0xE591Cbe3802e3E4908731E3D4B056cd8b08AE520) |
+| **MockUSDC** | [`0x4CcF36b273dA06D70B235d605639b3f8a6CA6B03`](https://sepolia.etherscan.io/address/0x4CcF36b273dA06D70B235d605639b3f8a6CA6B03) |
+
+### CCIP-Read Gateway
+
+**Gateway URL:** `https://gateway.rwa-id.com/{sender}/{data}.json`
+
+The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668) to enable off-chain resolution lookups with on-chain signature verification.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐
+│   Wallet    │
+│  (User)     │
+└──────┬──────┘
+       │ Resolve: alice.securitize.rwa-id.eth
+       ↓
+┌──────────────────┐
+│  ENS Registry    │
+│  (Ethereum)      │
+└──────┬───────────┘
+       │ Wildcard Resolver → 0x765F...
+       ↓
+┌──────────────────┐
+│ CCIP-Read        │
+│ Gateway          │
+│ gateway.rwa-id.com│
+└──────┬───────────┘
+       │ Looks up nodeToTokenId + ownerOf in RWAIDv2
+       │ Returns signed (node, address, hash, sig)
+       ↓
+┌──────────────────┐
+│ resolveWithProof │
+│ verifies sig     │
+│ returns address  │
+└──────────────────┘
+```
+
+---
+
+## 🛠️ Developer Setup
+
+```bash
+git clone https://github.com/RWA-ID/RWA-ID.git
+cd RWA-ID
+npm install
+cp .env.example .env   # fill in your keys
+```
+
+### Run Tests
+
+```bash
+npx hardhat test
+```
+
+68 tests — all passing.
+
+### Deploy to Sepolia
+
+```bash
+npx hardhat run scripts/deploy-sepolia.js --network sepolia
+```
+
+### Deploy to Mainnet
+
+```bash
+npx hardhat run scripts/deploy-mainnet.js --network mainnet
+```
+
+---
+
+## 📦 Repository Structure
+
+```
+contracts/
+  RWAIDv2.sol                    — Main v2 registry (ERC-721 + USDC fees + Merkle allowlist)
+  RwaIdWildcardResolverV2.sol    — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
+  mocks/MockUSDC.sol             — Test USDC (Sepolia only)
+  RwaIdRegistry.sol              — v1 contract (Linea, legacy)
+  RwaIdWildcardResolver.sol      — v1 resolver (Linea, legacy)
+scripts/
+  deploy-mainnet.js              — Deploy to Ethereum mainnet
+  deploy-sepolia.js              — Deploy to Sepolia testnet
+  reserve-slugs.js               — Propose slug reservations via Safe multisig
+  verify-reservations.js         — Verify reserved slugs on-chain
+  set-trusted-signer.js          — Update gateway signer via Safe multisig
+test/
+  RWAIDv2.test.js                — 68 contract tests
+```
 
 ---
 
@@ -235,63 +206,13 @@ RWA ID operates as **infrastructure only** with minimal regulatory surface area:
 | ✅ Facilitate on-chain resolution | ❌ Assert identity claims |
 | ✅ Support platform operations | ❌ Custody funds or assets |
 
-**Platforms retain full responsibility** for compliance, user verification, and regulatory obligations within their jurisdictions.
-
----
-
-## 🚦 Getting Started
-
-### For Platforms
-
-1. **Visit:** [rwa-id.com](https://rwa-id.com)
-2. **Connect:** Your platform wallet
-3. **Create:** Your project namespace
-4. **Upload:** CSV with client names and addresses
-5. **Deploy:** Share claim portal with your clients
-
-### For Developers
-
-```bash
-# Clone the repository
-git clone https://github.com/RWA-ID/RWA-ID.git
-cd RWA-ID
-
-# Read the technical documentation
-open whitepaper.md
-```
-
-**Key Resources:**
-- [Whitepaper](https://github.com/rwa-id/RWA-ID/blob/main/whitepaper.md)
-- [Technical Overview](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
-- [Live Demo](https://rwa-id.com)
-
----
-
-## 🤝 Partnership Opportunities
-
-We are actively seeking **design partner platforms** to shape v2 development:
-
-### Ideal Partners
-- RWA platforms ready for production deployment
-- Organizations seeking enterprise identity solutions
-- Technical partners for multi-chain expansion
-
-### What We Offer Design Partners
-- Early access to v2 features
-- Direct influence on protocol development
-- Technical integration support
-- Co-marketing opportunities
-
-**Interested?** Reach out to [partner@rwa-id.com](mailto:partner@rwa-id.com)
-
 ---
 
 ## 📞 Contact
 
-**Founder:** Hector Morel  
-**Email:** [partner@rwa-id.com](mailto:partner@rwa-id.com)  
-**Website:** [rwa-id.com](https://rwa-id.com)  
-**Documentation:** [Technical Overview](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
+**Founder:** Hector Morel
+**Email:** [partner@rwa-id.com](mailto:partner@rwa-id.com)
+**Website:** [rwa-id.com](https://rwa-id.com)
 
 ---
 
@@ -305,8 +226,8 @@ MIT
 
 - [ENS (Ethereum Name Service)](https://ens.domains/)
 - [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668)
-- [Linea Network](https://linea.build/)
-- [Merkle Proofs](https://en.wikipedia.org/wiki/Merkle_tree)
+- [OpenZeppelin Contracts v5](https://github.com/OpenZeppelin/openzeppelin-contracts)
+- [Ethereum](https://ethereum.org/)
 
 ---
 
@@ -314,7 +235,6 @@ MIT
 
 **RWA ID** — Identity Infrastructure for the Tokenized Economy
 
-[Website](https://rwa-id.com) • [Whitepaper](https://github.com/rwa-id/RWA-ID/blob/main/whitepaper.md) • [Technical Docs](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa) • [Contact](mailto:partner@rwa-id.com)
+[Website](https://rwa-id.com) • [Whitepaper](whitepaper.md) • [Technical Docs](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa) • [Contact](mailto:partner@rwa-id.com)
 
 </div>
-
