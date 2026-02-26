@@ -98,12 +98,13 @@ app.get("/resolve", async (req, res) => {
     const node = await registry.nameNodeFromHash(projectId, nameHash);
     const addr = await registry.resolveAddr(node);
 
-    const messageHash = ethers.solidityPackedKeccak256(
+    const rawHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
       [REGISTRY, node, addr]
     );
 
-    const signature = signer.signingKey.sign(messageHash).serialized;
+    const signature = await signer.signMessage(ethers.getBytes(rawHash));
+    const ethSignedHash = ethers.hashMessage(ethers.getBytes(rawHash));
 
     res.json({
       name: `${label}.${slug}.rwa-id.eth`,
@@ -111,7 +112,7 @@ app.get("/resolve", async (req, res) => {
       nameHash,
       node,
       address: addr,
-      messageHash,
+      messageHash: ethSignedHash,
       signature,
     });
   } catch (e) {
@@ -137,17 +138,18 @@ app.get("/ccip", async (req, res) => {
     const node = await registry.nameNodeFromHash(projectId, nameHash);
     const addr = await registry.resolveAddr(node);
 
-    const messageHash = ethers.solidityPackedKeccak256(
+    const rawHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
       [REGISTRY, node, addr]
     );
 
-    const signature = signer.signingKey.sign(messageHash).serialized;
+    const signature = await signer.signMessage(ethers.getBytes(rawHash));
+    const ethSignedHash = ethers.hashMessage(ethers.getBytes(rawHash));
 
     // ABI encode (bytes32 node, address resolved, bytes32 messageHash, bytes signature)
     const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
       ["bytes32", "address", "bytes32", "bytes"],
-      [node, addr, messageHash, signature]
+      [node, addr, ethSignedHash, signature]
     );
 
     res.setHeader("Content-Type", "text/plain");
@@ -202,16 +204,17 @@ async function handleCcipRead(req, res) {
     const node = await registry.nameNodeFromHash(projectId, nameHash);
     const addr = await registry.resolveAddr(node);
 
-    const messageHash = ethers.solidityPackedKeccak256(
+    const rawHash = ethers.solidityPackedKeccak256(
       ["address", "bytes32", "address"],
       [REGISTRY, node, addr]
     );
 
-    const signature = signer.signingKey.sign(messageHash).serialized;
+    const signature = await signer.signMessage(ethers.getBytes(rawHash));
+    const ethSignedHash = ethers.hashMessage(ethers.getBytes(rawHash));
 
     const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
       ["bytes32", "address", "bytes32", "bytes"],
-      [node, addr, messageHash, signature]
+      [node, addr, ethSignedHash, signature]
     );
 
     res.setHeader("Content-Type", "application/json");
