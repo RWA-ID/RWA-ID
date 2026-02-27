@@ -64,10 +64,13 @@ RWA ID provides neutral, shared identity infrastructure that:
 
 2. **Upload Allowlist**
    - Submit CSV mapping names to wallet addresses
-   - System computes Merkle root and commits it on-chain
+   - System computes Merkle root, commits it on-chain, and uploads proofs to IPFS via Pinata
+   - A shareable claim URL is generated automatically: `rwa-id.com/claim/[projectId]/[cid]`
 
 3. **Clients Claim Identities**
-   - Users visit the claim portal, connect wallet, pay optional USDC fee
+   - Platform shares the claim URL with clients (email, dashboard, etc.)
+   - Client opens the URL — their wallet is auto-detected from the proof file, no manual input needed
+   - Client approves USDC and confirms the claim in two wallet steps
    - Identity NFT minted — resolves immediately across all ENS wallets
    - Format: `client.yourplatform.rwa-id.eth`
 
