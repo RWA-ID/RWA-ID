@@ -60,7 +60,7 @@ RWA ID provides neutral, shared identity infrastructure that:
 1. **Create Project Namespace**
    - Platform connects wallet at [rwa-id.com](https://rwa-id.com)
    - Registers namespace (e.g., `test.rwa-id.eth`) — free to create
-   - Optionally sets a USDC claim fee (70% goes to platform treasury)
+   - Optionally sets a USDC claim fee (70% goes to platform treasury 30% to RWA ID)
 
 2. **Upload Allowlist**
    - Submit CSV mapping names to wallet addresses
