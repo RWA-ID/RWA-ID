@@ -238,6 +238,6 @@ MIT
 
 **RWA ID** — Identity Infrastructure for the Tokenized Economy
 
-[Website](https://rwa-id.com) • [Whitepaper](whitepaper.md) • [Technical Docs](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa) • [Contact](mailto:partner@rwa-id.com)
+[Website](https://rwa-id.com) • [Whitepaper](whitepaper.md) • [Technical Docs](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-v2-4563759f55214aa7989dbb882ef08e47?source=copy_link) • [Contact](mailto:partner@rwa-id.com)
 
 </div>
