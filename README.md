@@ -7,7 +7,7 @@
 [![Technical Docs](https://img.shields.io/badge/Technical-Overview-00BCD4?style=flat-square)](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
 [![Status](https://img.shields.io/badge/Status-Live%20on%20Mainnet-success?style=flat-square)](https://rwa-id.com)
 
-**RWA ID** is a non-custodial identity layer that enables RWA platforms to issue human-readable, soulbound ENS subdomains for clients, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and dApps.
+**RWA ID** is a non-custodial identity layer that enables RWA platforms to issue human-readable, soulbound or transferable ENS subdomains for clients wallets, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and dApps.
 
 ```
 joe.test.rwa-id.eth
