@@ -49,7 +49,7 @@ RWA ID provides neutral, shared identity infrastructure that:
 - ✅ 25 top RWA platform slugs reserved
 - ✅ CCIP-Read gateway live at `gateway.rwa-id.com`
 - ✅ ENS wildcard resolver active — names resolve in MetaMask & Trust Wallet
-- ✅ Platform console and client claim portal operational
+- ✅ Platform identity management dashboard operational
 
 ---
 
