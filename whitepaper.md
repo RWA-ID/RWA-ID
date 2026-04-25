@@ -1,7 +1,7 @@
 # RWA ID: Human-Readable Identity Infrastructure for Tokenized Real World Assets
 
-**Version 1.0**  
-**February 2025**
+**Version 2.0**  
+**April 2025**
 
 ---
 
@@ -179,27 +179,30 @@ This structure provides:
 
 ### 3.3 Key Components
 
-#### 3.3.1 Registry Contract (Linea)
-- Project namespace creation
+#### 3.3.1 Registry Contract (Ethereum Mainnet)
+- Project namespace creation (free — no ETH gate)
 - Merkle root storage and management
-- Claim verification and soulbound token issuance
+- Claim verification and ERC-721 identity token issuance (soulbound or transferable, per project)
+- USDC claim fees with 70/30 platform/protocol split
+- Identity revocation
 - Multisig-controlled administration
 
-**Address:** `0x74aaCeff8139c84433befB922a8E687B6ba51F3a`
+**Address:** `0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2`
 
 #### 3.3.2 ENS Wildcard Resolver
-- EIP-3668 CCIP-Read implementation
-- Off-chain proof resolution
+- ENSIP-10 / EIP-3668 CCIP-Read implementation
+- Off-chain signed resolution responses
+- Ownable: gateway URLs and trusted signer rotatable post-deploy
 - Universal wallet compatibility
 
-**Address:** `0x188a60a8bC5Df96CD12C64FBAf166075a5029c80`
+**Address:** `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1`
 
 #### 3.3.3 CCIP-Read Gateway
-- Off-chain Merkle proof serving
+- Off-chain resolution responses signed by trusted signer key
 - Metadata resolution
 - High-availability architecture
 
-**Gateway:** `https://rwaid-gatewayzip--nftworldeth.replit.app/{sender}/{data}.json`
+**Gateway:** `https://gateway.rwa-id.com/{sender}/{data}.json`
 
 ### 3.4 Trust Model
 
@@ -207,7 +210,7 @@ RWA ID operates on a minimal trust model:
 
 **Platforms trust:**
 - Smart contract logic (open source, auditable)
-- Ethereum/Linea consensus (battle-tested)
+- Ethereum consensus (battle-tested)
 - ENS infrastructure (established standard)
 
 **Platforms do NOT need to trust:**
@@ -233,25 +236,25 @@ RWA ID uses a **wildcard resolver pattern** with off-chain computation and on-ch
        ▼ 2. ENS lookup
 ┌──────────────────────┐
 │   ENS Registry       │  3. Returns wildcard resolver
-│   (Ethereum L1)      │     *.platform.rwa-id.eth → 0x188a...
+│   (Ethereum L1)      │     *.platform.rwa-id.eth → 0x765F...
 └──────┬───────────────┘
        │
        ▼ 4. CCIP-Read request
 ┌──────────────────────┐
 │   Wildcard Resolver  │  5. Calls off-chain gateway
-│   (Linea)            │     GET /resolve?name=alice...
+│   (Ethereum Mainnet) │     GET /resolve?name=alice...
 └──────┬───────────────┘
        │
-       ▼ 6. Fetch proof + metadata
+       ▼ 6. Fetch signed response
 ┌──────────────────────┐
-│   CCIP Gateway       │  7. Returns Merkle proof + address
-│   (Off-chain)        │     { proof: [...], address: 0x... }
+│   CCIP Gateway       │  7. Returns signed (node, addr, messageHash, sig)
+│   (Off-chain)        │     signed by trustedSigner key
 └──────┬───────────────┘
        │
-       ▼ 8. Verify proof on-chain
+       ▼ 8. Verify signature on-chain
 ┌──────────────────────┐
-│   Resolver Contract  │  9. Validates proof against Merkle root
-│   (Linea)            │     return resolvedAddress
+│   Resolver Contract  │  9. Validates signature, returns resolvedAddress
+│   (Ethereum Mainnet) │     (uses nodeToTokenId → ownerOf for live transfers)
 └──────┬───────────────┘
        │
        ▼ 10. Return result
@@ -269,16 +272,18 @@ RWA ID uses Merkle trees for scalable, gas-efficient identity management:
 
 #### 4.2.1 Leaf Construction
 ```solidity
-bytes32 leaf = keccak256(abi.encodePacked(name, walletAddress));
+bytes32 nameHash = keccak256(bytes(name));
+bytes32 leaf = keccak256(abi.encodePacked(claimer, nameHash));
 ```
 
 Example:
 ```
-name = "alice"
-address = 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+name    = "alice"
+claimer = 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
 
-leaf = keccak256(abi.encodePacked("alice", 0x742d...))
-     = 0x8f4a7c...
+nameHash = keccak256(bytes("alice"))
+leaf     = keccak256(abi.encodePacked(0x742d..., nameHash))
+         = 0x8f4a7c...
 ```
 
 #### 4.2.2 Tree Structure
@@ -357,39 +362,47 @@ RWA ID implements [EIP-3668](https://eips.ethereum.org/EIPS/eip-3668) for off-ch
    GET https://gateway.rwa-id.com/{sender}/{data}.json
    ```
 
-4. **Gateway returns proof + data:**
+4. **Gateway returns signed response:**
    ```json
    {
-       "data": "0x...",  // Encoded response
-       "proof": ["0x...", "0x...", ...]
+       "data": "0x..."  // abi.encoded (node, addr, messageHash, signature)
    }
    ```
 
-5. **Client calls callback with proof:**
+5. **Client calls callback with response:**
    ```solidity
-   resolver.addrWithProof(
+   resolver.resolveWithProof(
        response,
        extraData
    )
    ```
 
-6. **Resolver verifies and returns:**
+6. **Resolver verifies signature and returns:**
    ```solidity
-   require(verifyProof(proof, root, leaf));
-   return resolvedAddress;
+   require(recoverSigner(messageHash, signature) == trustedSigner);
+   return abi.encode(addr);
    ```
 
 #### 4.3.2 Security Guarantees
 
 CCIP-Read provides:
-- **Trust minimization:** Gateway cannot forge valid proofs
-- **Censorship resistance:** Multiple gateways can serve same data
-- **Verifiability:** All proofs checked on-chain
+- **Trust minimization:** Gateway cannot forge responses without the trustedSigner key
+- **Censorship resistance:** Multiple gateways can serve same data; URLs rotatable by owner
+- **Verifiability:** All responses verified on-chain via ECDSA signature
 - **Performance:** Off-chain computation, on-chain security
+- **Key rotation:** `setTrustedSigner()` and `setUrls()` allow post-deploy key rotation without redeployment
 
 ### 4.4 ENS Integration
 
 #### 4.4.1 Namespace Structure
+
+ENS nodes are derived deterministically:
+```
+rootNode    = namehash("rwa-id.eth")
+            = 0xe560d9c28239bdc04a0064c1a6473ce3a69ac03d1a8a39daedbdf2296db4892f
+projectNode = keccak256(abi.encodePacked(rootNode, slugHash))
+nameNode    = keccak256(abi.encodePacked(projectNode, nameHash))
+```
 
 ```
 rwa-id.eth (Root)
@@ -421,45 +434,28 @@ interface IResolver {
 }
 ```
 
-### 4.5 Soulbound Token Implementation
+### 4.5 ERC-721 Identity Token Implementation
 
-Once claimed, identities are soulbound (non-transferable):
+Identities are ERC-721 NFTs. Each project sets a default `transferable` flag at creation time. Individual tokens can be soulbound or transferable, depending on the project's configuration.
 
+**Soulbound enforcement (when `transferable = false`):**
 ```solidity
-contract SoulboundIdentity is ERC721 {
-    mapping(uint256 => bool) public claimed;
-    
-    function claim(
-        bytes32[] calldata proof,
-        string calldata name
-    ) external {
-        require(!claimed[tokenId], "Already claimed");
-        require(verifyProof(proof), "Invalid proof");
-        
-        _mint(msg.sender, tokenId);
-        claimed[tokenId] = true;
+function _update(address to, uint256 tokenId, address auth)
+    internal override returns (address)
+{
+    address from = _ownerOf(tokenId);
+    // Allow minting; block transfers and burns for non-transferable tokens
+    if (from != address(0) && to != address(0)) {
+        require(tokenTransferable[tokenId], "Soulbound: transfer disabled");
     }
-    
-    // Override transfer functions to prevent transfers
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        revert("Soulbound: transfer disabled");
-    }
-    
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        revert("Soulbound: transfer disabled");
-    }
+    return super._update(to, tokenId, auth);
 }
 ```
 
-**Rationale:** Soulbound identities ensure stable identity references. If identities were transferable, `alice.platform.rwa-id.eth` could resolve to different addresses over time, breaking identity assumptions.
+**Live resolution for transferable tokens:**
+The gateway uses `nodeToTokenId[node]` to look up the current `ownerOf(tokenId)`, so resolution always reflects the current holder without requiring a new merkle root.
+
+**Rationale:** Soulbound is the default for stable identity references. Transferable mode is available for use cases where the asset identity (e.g., a tokenized property) needs to follow the token owner.
 
 ---
 
@@ -473,7 +469,8 @@ contract SoulboundIdentity is ERC721 {
 │                                                     │
 │ Platform → connect wallet                           │
 │         → register "myplatform.rwa-id.eth"         │
-│         → pay 0.0005 ETH one-time fee              │
+│         → free (no ETH fee required)               │
+│         → set treasury address + optional claim fee │
 │                                                     │
 │ Result: myplatform.rwa-id.eth namespace created    │
 └─────────────────────────────────────────────────────┘
@@ -501,7 +498,7 @@ contract SoulboundIdentity is ERC721 {
 │       merkleRoot: 0xabcd1234...                     │
 │   )                                                 │
 │                                                     │
-│ Gas cost: ~50,000 gas (~$0.50 on Linea)           │
+│ Gas cost: ~50,000 gas (~$1–2 on Ethereum mainnet)  │
 └─────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────┐
@@ -510,8 +507,10 @@ contract SoulboundIdentity is ERC721 {
 │ Client → visit rwa-id.com/claim                     │
 │       → connect wallet (0x742d...)                  │
 │       → system detects: eligible for "alice"        │
+│       → client approves USDC (claim fee)            │
 │       → client signs transaction                    │
-│       → pays gas (~$0.10)                          │
+│       → 70% fee → platform treasury                 │
+│       → 30% fee → protocol multisig                 │
 │                                                     │
 │ Result: alice.myplatform.rwa-id.eth → 0x742d...   │
 └─────────────────────────────────────────────────────┘
@@ -527,7 +526,7 @@ contract SoulboundIdentity is ERC721 {
 │   ✓ Any ENS-compatible wallet                       │
 │                                                     │
 │ Across all supported chains:                        │
-│   ✓ Ethereum, Linea, Base, Optimism, Arbitrum...  │
+│   ✓ Ethereum, Base, Optimism, Arbitrum, Polygon... │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -548,7 +547,7 @@ dave,0x3d5bC8F7A2E9D6C4B8A7F5E3D2C1B0A9F8E7D6C5
 - Header row required: `name,address`
 - Name field: 3-32 characters, alphanumeric + hyphens
 - Address field: Valid Ethereum address (checksummed or lowercase)
-- Maximum 10,000 entries per upload (v1 limit)
+- No hard upload limit (Merkle tree scales to millions of entries)
 - Duplicates automatically filtered
 
 **Processing:**
@@ -576,11 +575,12 @@ function generateMerkleTree(entries) {
     //   { name: "bob", address: "0x8a3e..." }
     // ]
     
-    // Create leaves
+    // Create leaves: keccak256(abi.encodePacked(claimer, nameHash))
     const leaves = entries.map(entry => {
-        return ethers.utils.solidityKeccak256(
-            ['string', 'address'],
-            [entry.name, entry.address]
+        const nameHash = ethers.keccak256(ethers.toUtf8Bytes(entry.name));
+        return ethers.solidityPackedKeccak256(
+            ['address', 'bytes32'],
+            [entry.address, nameHash]
         );
     });
     
@@ -624,32 +624,40 @@ function claim(
     string calldata name,
     bytes32[] calldata proof
 ) external {
-    // Get project's Merkle root
-    bytes32 root = projectMerkleRoots[projectId];
-    require(root != bytes32(0), "Project not found");
-    
-    // Compute leaf
-    bytes32 leaf = keccak256(
-        abi.encodePacked(name, msg.sender)
-    );
-    
-    // Verify proof
+    Project storage project = projects[projectId];
+    require(project.active, "Project not found or inactive");
+    require(!claimed[projectId][msg.sender], "Already claimed");
+
+    bytes32 nameHash = keccak256(bytes(name));
+    require(!revoked[projectId][nameHash], "Identity revoked");
+
+    // Compute leaf: keccak256(abi.encodePacked(claimer, nameHash))
+    bytes32 leaf = keccak256(abi.encodePacked(msg.sender, nameHash));
+
     require(
-        MerkleProof.verify(proof, root, leaf),
+        MerkleProof.verify(proof, project.merkleRoot, leaf),
         "Invalid proof"
     );
-    
-    // Check not already claimed
-    bytes32 claimId = keccak256(
-        abi.encodePacked(projectId, msg.sender)
-    );
-    require(!claimed[claimId], "Already claimed");
-    
-    // Mark as claimed and mint soulbound token
-    claimed[claimId] = true;
+
+    // Collect USDC claim fee (70% platform, 30% protocol)
+    uint256 fee = project.claimFee > 0 ? project.claimFee : minimumClaimFee;
+    uint256 protocolShare = (fee * protocolFeePercent) / 100;
+    uint256 platformShare = fee - protocolShare;
+    usdc.safeTransferFrom(msg.sender, project.treasury, platformShare);
+    usdc.safeTransferFrom(msg.sender, protocolTreasury, protocolShare);
+
+    // Mint identity token and register ENS node
+    uint256 tokenId = nextTokenId++;
+    claimed[projectId][msg.sender] = true;
+    bytes32 nameNode = keccak256(abi.encodePacked(
+        keccak256(abi.encodePacked(RWA_ID_ROOT_NODE, project.slugHash)),
+        nameHash
+    ));
+    nodeToTokenId[nameNode] = tokenId;
+    nodeClaimed[nameNode] = true;
     _mint(msg.sender, tokenId);
-    
-    emit IdentityClaimed(projectId, name, msg.sender);
+
+    emit IdentityClaimed(projectId, name, msg.sender, tokenId);
 }
 ```
 
@@ -794,7 +802,7 @@ claimed[claimId] = true;
 Critical operations require multisig approval:
 
 ```
-Multisig Address: [To be deployed - Safe multisig]
+Multisig Address: 0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab
 Threshold: 2-of-3
 Signers: 
   - Founder
@@ -839,10 +847,10 @@ function unpause() external onlyMultisig {
 
 ### 6.4 Audit Status
 
-**v1 Status:** Internal security review completed
+**v2 Status:** Internal security review completed
 
 **Planned Audits:**
-- Target: Q2 2025
+- Target: Q3 2025
 - Scope: Core contracts + resolver logic
 - Auditor: [TBD - seeking recommendations]
 
@@ -854,91 +862,57 @@ function unpause() external onlyMultisig {
 
 ## 7. Economic Model
 
-### 7.1 v1 Economics (Current)
+### 7.1 Protocol Economics (Current — v2)
 
-The current v1 model focuses on **accessibility and adoption**:
+The v2 model provides **protocol-enforced monetization** with transparent revenue sharing and zero barrier to project creation:
 
 | Action | Cost | Recipient |
 |--------|------|-----------|
-| Create project namespace | 0.0005 ETH (~$1.25) | RWA ID Treasury |
-| Upload CSV allowlist | Gas only (~$0.50) | Network validators |
-| Client claims identity | Gas only (~$0.10) | Network validators |
+| Create project namespace | Free | — |
+| Upload CSV allowlist | Gas only | Network validators |
+| Client claims identity | USDC claim fee (min $0.50) | 70% platform / 30% protocol |
 
 **Design Rationale:**
-- Minimal barrier to platform adoption
-- No per-client costs for platforms
-- Users pay only network fees
-- Focus on product-market fit
+- Zero barrier to platform onboarding (free project creation)
+- Protocol-enforced revenue split — no off-chain accounting
+- Platforms set their own fee above the protocol minimum
+- Aligned incentives: platforms earn revenue, protocol is funded sustainably
 
-**v1 Revenue Model:**
-- Primarily namespace registration fees
-- Sustainable for initial development
-- Not designed for long-term protocol operations
+### 7.2 Fee Structure (Live)
 
-### 7.2 v2 Economics (Planned)
-
-v2 introduces **protocol-enforced monetization** with transparent revenue sharing:
-
-#### 7.2.1 Fee Structure
+#### 7.2.1 Fee Flow
 
 ```
-Platform creates project namespace
+Platform creates project namespace (free)
          ↓
-Platform sets optional per-claim fee
-  (e.g., 0.001 ETH / ~$2.50)
+Platform sets per-claim fee in USDC
+  (e.g., $1.00 USDC — must be ≥ protocol minimum $0.50)
          ↓
 Platform sets treasury address
          ↓
-Client claims identity and pays fee
+Client claims identity, approves USDC transfer
          ↓
 Protocol automatically enforces split:
-  ┌───────────────────┐
-  │   70% → Platform  │  (0.0007 ETH)
-  │   30% → RWA ID    │  (0.0003 ETH)
-  └───────────────────┘
+  ┌─────────────────────────────────────┐
+  │   70% → Platform treasury  ($0.70)  │
+  │   30% → Protocol multisig  ($0.30)  │
+  └─────────────────────────────────────┘
 ```
 
-#### 7.2.2 Smart Contract Implementation
+**Fee parameters (adjustable by protocol owner):**
+- `minimumClaimFee`: 500,000 (= $0.50 USDC, 6 decimals)
+- `protocolFeePercent`: 30 (range: 10–50)
+- USDC: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` (Ethereum mainnet)
+
+#### 7.2.2 On-Chain Split Enforcement
 
 ```solidity
-struct Project {
-    address treasury;
-    uint256 claimFee;  // in wei
-    bytes32 merkleRoot;
-}
+uint256 fee = project.claimFee > 0 ? project.claimFee : minimumClaimFee;
+uint256 protocolShare = (fee * protocolFeePercent) / 100;
+uint256 platformShare = fee - protocolShare;
 
-mapping(uint256 => Project) public projects;
-
-function claimWithFee(
-    uint256 projectId,
-    string calldata name,
-    bytes32[] calldata proof
-) external payable {
-    Project memory project = projects[projectId];
-    
-    // Verify fee payment
-    require(msg.value == project.claimFee, "Incorrect fee");
-    
-    // Verify proof and mint (standard v1 logic)
-    // ... verification code ...
-    
-    // Enforce revenue split
-    uint256 platformShare = (msg.value * 70) / 100;
-    uint256 protocolShare = msg.value - platformShare;
-    
-    // Transfer funds
-    (bool success1, ) = project.treasury.call{
-        value: platformShare
-    }("");
-    require(success1, "Platform transfer failed");
-    
-    (bool success2, ) = protocolTreasury.call{
-        value: protocolShare
-    }("");
-    require(success2, "Protocol transfer failed");
-    
-    emit FeeSplit(projectId, platformShare, protocolShare);
-}
+usdc.safeTransferFrom(msg.sender, project.treasury, platformShare);
+usdc.safeTransferFrom(msg.sender, protocolTreasury, protocolShare);
 ```
 
 #### 7.2.3 Economic Properties
@@ -957,7 +931,7 @@ function claimWithFee(
 
 **Flexibility:**
 - Platforms set their own fee (0 to reasonable maximum)
-- Optional model (platforms can keep v1 gas-only if preferred)
+- Platforms set their own fee above the protocol minimum
 - Market-driven pricing
 
 #### 7.2.4 Revenue Projections
@@ -1114,7 +1088,7 @@ const allowlist = contributors.map(c => ({
 import { RWAIDClient } from '@rwa-id/sdk';
 
 const client = new RWAIDClient({
-    network: 'linea',
+    network: 'mainnet',
     projectId: 'your-project-id'
 });
 
@@ -1362,8 +1336,7 @@ RWA ID identities resolve across multiple chains:
 
 | Chain | Status | Resolver Address | Notes |
 |-------|--------|------------------|-------|
-| **Ethereum** | ✅ Live | Native ENS | L1 resolution via ENS registry |
-| **Linea** | ✅ Live | `0x188a60...` | Primary deployment, lowest costs |
+| **Ethereum** | ✅ Live | `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1` | Primary deployment (v2) |
 | **Base** | ✅ Live | Native ENS | Coinbase L2, growing DeFi |
 | **Optimism** | ✅ Live | Native ENS | Optimistic rollup, low fees |
 | **Arbitrum** | ✅ Live | Native ENS | Fastest growing L2 |
@@ -1378,18 +1351,18 @@ User on Base queries: alice.platform.rwa-id.eth
          ↓
 Base ENS Registry checks L1 ENS
          ↓
-L1 ENS returns resolver: 0x188a60... (Linea)
+L1 ENS returns resolver: 0x765FB6... (Ethereum mainnet)
          ↓
 CCIP-Read to gateway (chain-agnostic)
          ↓
-Gateway returns proof
+Gateway returns signed (node, addr, messageHash, signature)
          ↓
-Resolver verifies on Linea
+Resolver verifies signature on Ethereum mainnet
          ↓
 Result cached and returned to Base user
 ```
 
-**Key Property:** Identity claimed on Linea resolves on all chains
+**Key Property:** Identity claimed on Ethereum mainnet resolves on all chains
 
 ### 10.3 Future Chain Support
 
@@ -1406,17 +1379,17 @@ Result cached and returned to Base user
 
 ### 10.4 Chain Selection for Primary Deployment
 
-**Why Linea?**
+**Why Ethereum Mainnet?**
 
-| Factor | Linea | Ethereum L1 | Other L2s |
-|--------|-------|-------------|-----------|
-| **Costs** | ~$0.10 per claim | ~$10+ per claim | ~$0.50 per claim |
-| **Speed** | 2-3 second finality | 12 second blocks | 2-10 seconds |
-| **EVM Compatibility** | 100% | 100% | 95-99% |
-| **ENS Support** | Native | Native | Native |
-| **Maturity** | Production ready | Battle-tested | Varies |
+| Factor | Ethereum Mainnet | Other L2s |
+|--------|-----------------|-----------|
+| **ENS Authority** | Native L1 root | L2 bridge required |
+| **Resolver Trust** | No bridging assumptions | Cross-chain trust |
+| **Wallet Compatibility** | Universal | Varies |
+| **USDC Liquidity** | Deepest | Good |
+| **EVM Compatibility** | 100% | 95-99% |
 
-**Decision:** Linea offers best balance of cost, speed, and ENS compatibility
+**Decision:** Ethereum mainnet is the natural home for ENS-native identity. It eliminates cross-chain trust assumptions and has the deepest USDC liquidity.
 
 ---
 
@@ -1429,38 +1402,33 @@ Result cached and returned to Base user
 **Mid-January 2025:** Linea mainnet deployment (v1)  
 **Late January 2025:** Platform console and claim portal launch  
 **Early February 2025:** Multi-chain resolution verified  
+**Q1–Q2 2025:** v2 development — ERC-721, USDC fees, mainnet migration  
+**April 2025:** Ethereum mainnet deployment (v2) — RWAIDv2 + WildcardResolverV2  
 
-### 11.2 Current Phase: v1 Foundation (Q1 2025)
+### 11.2 Current Phase: v2 Live (Q2 2025)
 
-**Goals:**
-- ✅ Core contracts deployed and operational
-- ✅ Platform creation and CSV upload working
-- ✅ Client claiming functional
+**Completed:**
+- ✅ ERC-721 identity tokens (soulbound + transferable)
+- ✅ USDC claim fees with 70/30 on-chain split
+- ✅ Free project creation
+- ✅ Namespace reservation (front-running protection)
+- ✅ Identity revocation
+- ✅ Signature-based CCIP-Read resolver (key rotatable)
+- ✅ Multisig governance (`0xa287...75Ab`)
+- ✅ Ethereum mainnet deployment
 - ✅ Multi-chain resolution verified
+
+**In Progress:**
 - 🔄 Onboard first design partner platform
 - 🔄 Gather integration feedback
-- 🔄 Refine UX based on real usage
+- 🔄 Refine dApp UX based on real usage
 
 **Metrics:**
-- Target: 1-3 production platforms by end of Q1
+- Target: 1-3 production platforms by end of Q2
 - Target: 100-1000 claimed identities
 - Target: 99.9% gateway uptime
 
-### 11.3 v2 Development (Q2 2025)
-
-**Features:**
-- Protocol-enforced fee splitting (70/30 model)
-- Platform treasury configuration
-- Optional monetization for platforms
-- Enhanced analytics dashboard
-- Batch operations for large allowlists
-
-**Prerequisites:**
-- At least one production platform using v1
-- User feedback incorporated
-- Security audit completed
-
-### 11.4 Ecosystem Growth (Q2-Q3 2025)
+### 11.3 Ecosystem Growth (Q2-Q3 2025)
 
 **Infrastructure:**
 - Multiple gateway instances for redundancy
@@ -1631,7 +1599,7 @@ struct ClaimRecord {
 | Claim identity | ~120,000 | ~$0.48 | ~$1.20 |
 | Resolve (view) | 0 (off-chain) | $0 | $0 |
 
-*Estimates for Linea network*
+*Estimates for Ethereum mainnet at moderate gas prices*
 
 ### 12.4 API Endpoints
 
@@ -1681,13 +1649,13 @@ Response: {
 ### 12.5 Dependencies
 
 **Smart Contracts:**
-- OpenZeppelin Contracts v4.9.0
+- OpenZeppelin Contracts v5
   - ERC721.sol
   - Ownable.sol
   - ReentrancyGuard.sol
-- ENS Contracts v0.0.22
-  - ENS.sol
-  - Resolver.sol
+  - SafeERC20.sol
+  - MerkleProof.sol
+- Solidity 0.8.24
 
 **Off-Chain:**
 - Node.js v18+
@@ -1712,10 +1680,12 @@ RWA ID provides essential identity infrastructure for the tokenized economy:
 
 ### 13.2 Current Status
 
-- ✅ **v1 Live:** Core infrastructure deployed on Linea
-- ✅ **Production Ready:** Platform creation and claiming operational
-- ✅ **Multi-Chain:** Resolution working across 6+ networks
-- 🔄 **Seeking Partners:** Design partner platforms for v2 development
+- ✅ **v2 Live:** ERC-721 registry + CCIP-Read resolver deployed on Ethereum mainnet
+- ✅ **USDC Fees:** 70/30 on-chain revenue split operational
+- ✅ **Free Project Creation:** No ETH gate — any platform can onboard instantly
+- ✅ **Multi-Chain:** Resolution working across 5+ networks
+- ✅ **Multisig Governance:** `0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`
+- 🔄 **Seeking Partners:** Design partner platforms for production onboarding
 
 ### 13.3 Call to Action
 
@@ -1827,7 +1797,7 @@ By providing neutral, open infrastructure, RWA ID accelerates the adoption of to
 
 **Multisig:** Multi-signature wallet requiring multiple approvals
 
-**L1/L2:** Layer 1 (Ethereum) vs Layer 2 (Linea, Base, etc.)
+**L1/L2:** Layer 1 (Ethereum) vs Layer 2 (Base, Optimism, Arbitrum, etc.)
 
 ---
 
@@ -1846,10 +1816,10 @@ A: Contact your platform. They can revoke access or issue new identity to recove
 A: One identity per wallet per project. You can claim identities in different projects.
 
 **Q: What chains are supported?**  
-A: Ethereum, Linea, Base, Optimism, Arbitrum, Polygon. More coming.
+A: Ethereum, Base, Optimism, Arbitrum, Polygon. More coming.
 
 **Q: How much does it cost?**  
-A: v1: Only gas fees (~$0.10 on Linea). v2: Optional platform fees.
+A: A small USDC fee set by the platform (minimum $0.50). Project creation is free.
 
 **Q: Is my personal information stored?**  
 A: No. Only wallet addresses and chosen pseudonyms.
@@ -1884,8 +1854,8 @@ Email: partner@rwa-id.com
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** February 2025  
+**Document Version:** 2.0  
+**Last Updated:** April 2025  
 **Authors:** RWA ID Team  
 **License:** Copyright © 2025 RWA ID. All rights reserved.
 
