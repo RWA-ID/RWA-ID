@@ -6,13 +6,27 @@ const { ethers } = require("ethers");
 const PORT = process.env.PORT || 5000;
 
 // Required env vars (trim whitespace)
-const LINEA_RPC_URL = (process.env.LINEA_RPC_URL || '').trim();
+const PRIMARY_RPC = (process.env.LINEA_RPC_URL || '').trim();
 const REGISTRY = (process.env.RWA_ID_REGISTRY || '').trim();
 
-if (!LINEA_RPC_URL) throw new Error("Missing LINEA_RPC_URL");
 if (!REGISTRY) throw new Error("Missing RWA_ID_REGISTRY");
 
-const provider = new ethers.JsonRpcProvider(LINEA_RPC_URL);
+// Ethereum mainnet fallback RPCs (tried in order if primary fails)
+const FALLBACK_RPCS = [
+  "https://cloudflare-eth.com",
+  "https://ethereum-rpc.publicnode.com",
+  "https://1rpc.io/eth",
+];
+
+const rpcList = PRIMARY_RPC
+  ? [PRIMARY_RPC, ...FALLBACK_RPCS]
+  : FALLBACK_RPCS;
+
+const provider = new ethers.FallbackProvider(
+  rpcList.map((url, i) => ({ provider: new ethers.JsonRpcProvider(url), priority: i + 1, weight: 1 })),
+  1 // quorum of 1 — first responder wins
+);
+console.log("RPC list:", rpcList);
 const GATEWAY_SIGNER_PRIVATE_KEY = (process.env.GATEWAY_SIGNER_PRIVATE_KEY || '').trim();
 if (!GATEWAY_SIGNER_PRIVATE_KEY) throw new Error("Missing GATEWAY_SIGNER_PRIVATE_KEY");
 
@@ -72,7 +86,7 @@ app.get("/health", async (_req, res) => {
     res.json({
       ok: true,
       chainId: network.chainId.toString(),
-      rpc: LINEA_RPC_URL,
+      rpcs: rpcList,
       registry: REGISTRY,
       signer: SIGNER_ADDRESS
     });
@@ -233,6 +247,5 @@ app.post("/:sender/:data.json", handleCcipRead);
 
 app.listen(PORT, () => {
   console.log(`rwaid-gateway listening on :${PORT}`);
-  console.log("LINEA_RPC_URL:", LINEA_RPC_URL);
   console.log("RWA_ID_REGISTRY:", REGISTRY);
 });
