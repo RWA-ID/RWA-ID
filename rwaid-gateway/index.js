@@ -6,27 +6,24 @@ const { ethers } = require("ethers");
 const PORT = process.env.PORT || 5000;
 
 // Required env vars (trim whitespace)
-const PRIMARY_RPC = (process.env.LINEA_RPC_URL || '').trim();
 const REGISTRY = (process.env.RWA_ID_REGISTRY || '').trim();
+const ALCHEMY_API_KEY = (process.env.ALCHEMY_API_KEY || '').trim();
 
 if (!REGISTRY) throw new Error("Missing RWA_ID_REGISTRY");
 
-// Ethereum mainnet fallback RPCs (tried in order if primary fails)
-const FALLBACK_RPCS = [
+// Ethereum mainnet RPC list — Alchemy first (if key provided), then public fallbacks
+const rpcList = [
+  ...(ALCHEMY_API_KEY ? [`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
   "https://cloudflare-eth.com",
   "https://ethereum-rpc.publicnode.com",
   "https://1rpc.io/eth",
 ];
 
-const rpcList = PRIMARY_RPC
-  ? [PRIMARY_RPC, ...FALLBACK_RPCS]
-  : FALLBACK_RPCS;
-
 const provider = new ethers.FallbackProvider(
   rpcList.map((url, i) => ({ provider: new ethers.JsonRpcProvider(url), priority: i + 1, weight: 1 })),
   1 // quorum of 1 — first responder wins
 );
-console.log("RPC list:", rpcList);
+console.log("RPC list (first is primary):", rpcList[0], "+ " + (rpcList.length - 1) + " fallbacks");
 const GATEWAY_SIGNER_PRIVATE_KEY = (process.env.GATEWAY_SIGNER_PRIVATE_KEY || '').trim();
 if (!GATEWAY_SIGNER_PRIVATE_KEY) throw new Error("Missing GATEWAY_SIGNER_PRIVATE_KEY");
 
@@ -86,7 +83,7 @@ app.get("/health", async (_req, res) => {
     res.json({
       ok: true,
       chainId: network.chainId.toString(),
-      rpcs: rpcList,
+      rpcs: rpcList.map(url => url.replace(/\/v2\/[^/]+/, "/v2/***")),
       registry: REGISTRY,
       signer: SIGNER_ADDRESS
     });
