@@ -299,26 +299,34 @@ cp .env.example .env   # fill in your keys
 ### Run Tests
 
 ```bash
-npx hardhat test test/RWAIDv2.test.js     # 68 passing
+npx hardhat test        # 112 passing
 ```
 
-The v2 suite covers the registry logic v3 inherits unchanged — projects, allowlists,
-fee splitting, soulbound enforcement, revocation, CCIP-Read. **v3's own additions
-(on-chain `tokenURI`, label validation, the label-carrying `claim`) have no unit suite
-yet** and are exercised by a verification script instead:
+| Suite | Covers |
+|---|---|
+| `test/RWAIDv2.test.js` (68) | Registry logic v3 inherits unchanged — projects, reservations, allowlists, fee splitting, soulbound enforcement, revocation, ownership, CCIP-Read resolver |
+| `test/RWAIDv3.test.js` (44) | v3's own surface — label validation, claiming by label, `tokenURI`, `contractURI`, the `baseURI` escape hatch, ERC-4906 |
+
+The v3 suite is written around the failure modes that motivated v3. It asserts that
+uppercase labels are rejected rather than folded (folding would invalidate every
+Merkle proof, and accepting them recreates the v2 bug where a name minted at
+`keccak("Zac")` while ENS looked up `keccak("zac")`); that a label cannot break out of
+the JSON or SVG that `tokenURI()` interpolates it into; and that a leaf built the v2
+way still verifies, which is what lets existing allowlists carry over.
+
+The suite has been mutation-tested — re-allowing uppercase, making `tokenURI` return
+`""` as v2 did, and ignoring the `baseURI` override each produce failures in exactly
+the tests that should catch them.
+
+Separately, a live-data check runs the same path against the **real pinned proof set**
+rather than fixtures:
 
 ```bash
 npx hardhat run scripts/v3-metadata-check.js
 ```
 
-It deploys v3 locally, publishes a real v2-era Merkle root unchanged, claims against
-it with the original proofs, decodes the resulting `tokenURI`, and asserts that
-malformed labels — dots, uppercase, spaces, JSON and SVG injection — are rejected.
-Writing proper unit tests for v3 is outstanding work.
-
-> `npx hardhat test` with no arguments also picks up `test/rwaIdRegistry.test.js`, a
-> legacy v1 suite that fails on a constructor signature change. That predates v3 and
-> does not affect the deployed contracts.
+It fetches a v2-era proof set from IPFS, publishes its root to a fresh v3 deployment
+unchanged, and claims with the original untouched proofs.
 
 ### Deploy
 
@@ -361,7 +369,8 @@ scripts/
   v3-metadata-check.js           — Verify v3 metadata + v2 allowlist compatibility
   check-dashboard-abi.mjs        — Diff the console's ABI against the compiled contract
 test/
-  RWAIDv2.test.js                — 68 contract tests
+  RWAIDv2.test.js                — 68 tests: inherited registry logic
+  RWAIDv3.test.js                — 44 tests: metadata, label rules, escape hatches
 apps/
   rwa-id-dashboard/              — Platform console (own repo: RWA-ID/RWA-ID-Dashboard)
 packages/
