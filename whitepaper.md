@@ -1,7 +1,7 @@
 # RWA ID: Human-Readable Identity Infrastructure for Tokenized Real World Assets
 
-**Version 2.0**  
-**April 2025**
+**Version 3.0**  
+**August 2026**
 
 ---
 
@@ -9,14 +9,33 @@
 
 RWA ID is a decentralized identity infrastructure layer that enables Real World Asset (RWA) platforms to issue human-readable, soulbound ENS subdomains for clients, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and blockchains without requiring custody, personal data collection, or complex identity verification.
 
-This whitepaper presents the technical architecture, economic model, security considerations, and integration pathways for platforms seeking to implement human-readable identity infrastructure for the tokenized economy.
+This whitepaper presents the technical architecture, economic model, security considerations, and integration pathways for platforms seeking to implement human-readable identity infrastructure for the tokenized economy. It describes **RWA ID v3**, the registry live on Ethereum mainnet since 1 August 2026.
 
 **Key Differentiators:**
 - Non-custodial identity references (not credentials)
 - Multi-chain resolution from day one
 - Zero PII collection
-- Protocol-enforced revenue sharing (v2)
+- Protocol-enforced revenue sharing
+- Fully on-chain identity metadata and artwork (v3)
 - Built on battle-tested ENS infrastructure
+
+### What Changed in v3
+
+v3 is a metadata and safety upgrade to the registry. The ENS layout, node derivation
+and Merkle leaf format are unchanged, so every allowlist and proof built for v2
+remains valid and no resolver redeployment was required.
+
+| | v2 | v3 |
+|---|---|---|
+| Registry | `0xD0B5...30c2` | [`0x6413...A2C7`](https://etherscan.io/address/0x6413e9E6A0D4e05557463A66C34E18192324A2C7) |
+| `tokenURI()` | Not overridden — identities rendered as an untitled, imageless "RWA ID #n" | Name, description, SVG artwork and traits generated on-chain from contract storage |
+| `claim()` argument | `nameHash` | The label itself, so the contract can name what it mints |
+| Label validation | None on-chain | Lowercase `a-z 0-9 - _`, 1–63 chars — rejects the mixed-case entries that minted under v2 and then never resolved |
+| Metadata escape hatch | — | Optional `baseURI` / `contractURI`, so artwork can be repointed without redeploying |
+
+The wildcard resolver (`0x765F...5eb1`) stores no registry address and only verifies
+the gateway's signature, so the v2 → v3 cutover was a gateway configuration change.
+v2 remains readable on-chain for historical claims; all new projects target v3.
 
 ---
 
@@ -183,11 +202,13 @@ This structure provides:
 - Project namespace creation (free — no ETH gate)
 - Merkle root storage and management
 - Claim verification and ERC-721 identity token issuance (soulbound or transferable, per project)
+- On-chain token metadata — name, description, SVG artwork and traits rendered from contract storage
 - USDC claim fees with 70/30 platform/protocol split
 - Identity revocation
 - Multisig-controlled administration
 
-**Address:** `0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2`
+**Address (RWAIDv3):** `0x6413e9E6A0D4e05557463A66C34E18192324A2C7`
+**Superseded (RWAIDv2, no token metadata):** `0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2`
 
 #### 3.3.2 ENS Wildcard Resolver
 - ENSIP-10 / EIP-3668 CCIP-Read implementation
@@ -457,6 +478,36 @@ The gateway uses `nodeToTokenId[node]` to look up the current `ownerOf(tokenId)`
 
 **Rationale:** Soulbound is the default for stable identity references. Transferable mode is available for use cases where the asset identity (e.g., a tokenized property) needs to follow the token owner.
 
+**On-chain metadata (v3):**
+v2 never overrode `tokenURI()`, so every identity rendered on marketplaces as an
+untitled, imageless "RWA ID #n". v3 stores the claimed label alongside its hash and
+builds the token document on-chain:
+
+```solidity
+struct IdentityMetadata {
+    uint256 projectId;
+    bytes32 nameHash;
+    uint256 claimedAt;
+    string  label;      // v3: the label itself, so the token can name itself
+}
+
+function fullName(uint256 tokenId) public view returns (string memory) {
+    IdentityMetadata memory meta = tokenMetadata[tokenId];
+    return string.concat(meta.label, ".", projects[meta.projectId].slug, ".rwa-id.eth");
+}
+```
+
+`tokenURI()` returns a base64 `data:application/json` document containing the full
+name, a description, a generated SVG carrying the name as artwork, and traits for
+namespace, label, project id, transferability and claim date. It also advertises
+ERC-4906, so marketplaces refresh when metadata changes. No metadata server exists to go offline.
+The protocol multisig may set an optional `baseURI` to point at an off-chain
+collection instead; clearing it restores the on-chain renderer.
+
+Because the label is interpolated into both JSON and SVG, v3 validates it on entry —
+lowercase `a-z`, digits, hyphen and underscore only — which also closes the v2 trap
+where a mixed-case label minted successfully and then never resolved.
+
 ---
 
 ## 5. Implementation Details
@@ -493,9 +544,10 @@ The gateway uses `nodeToTokenId[node]` to look up the current `ownerOf(tokenId)`
 │ Step 3: Set Merkle Root On-Chain                   │
 │                                                     │
 │ Transaction:                                        │
-│   contract.setMerkleRoot(                           │
+│   contract.updateMerkleRoot(                        │
 │       projectId,                                    │
-│       merkleRoot: 0xabcd1234...                     │
+│       newRoot: 0xabcd1234...,                       │
+│       newTotalAllowlisted: 4                        │
 │   )                                                 │
 │                                                     │
 │ Gas cost: ~50,000 gas (~$1–2 on Ethereum mainnet)  │
@@ -545,7 +597,7 @@ dave,0x3d5bC8F7A2E9D6C4B8A7F5E3D2C1B0A9F8E7D6C5
 **Validation Rules:**
 - UTF-8 encoding
 - Header row required: `name,address`
-- Name field: 3-32 characters, alphanumeric + hyphens
+- Name field: 1–63 characters, **lowercase** `a-z`, digits, hyphen and underscore. v3 rejects uppercase on-chain rather than folding it, because the gateway lowercases before hashing — a mixed-case entry would mint and then never resolve
 - Address field: Valid Ethereum address (checksummed or lowercase)
 - No hard upload limit (Merkle tree scales to millions of entries)
 - Duplicates automatically filtered
@@ -557,7 +609,7 @@ dave,0x3d5bC8F7A2E9D6C4B8A7F5E3D2C1B0A9F8E7D6C5
 4. Sort entries (deterministic ordering)
 5. Compute Merkle tree
 6. Generate proofs for each entry
-7. Store proofs in gateway database
+7. Pin the proof set to IPFS (public and permanent — use pseudonymous labels)
 8. Return Merkle root for on-chain commitment
 
 ### 5.3 Merkle Proof Generation
@@ -847,10 +899,12 @@ function unpause() external onlyMultisig {
 
 ### 6.4 Audit Status
 
-**v2 Status:** Internal security review completed
+**v3 Status:** Internal security review completed; contracts verified on Etherscan.
+The v2 suite covers the registry logic v3 inherits unchanged, with additional tests
+for v3's own surface (label validation, metadata rendering, baseURI override).
 
 **Planned Audits:**
-- Target: Q3 2025
+- Target: next funding milestone
 - Scope: Core contracts + resolver logic
 - Auditor: [TBD - seeking recommendations]
 
@@ -862,9 +916,9 @@ function unpause() external onlyMultisig {
 
 ## 7. Economic Model
 
-### 7.1 Protocol Economics (Current — v2)
+### 7.1 Protocol Economics (Current — v3)
 
-The v2 model provides **protocol-enforced monetization** with transparent revenue sharing and zero barrier to project creation:
+The model — unchanged from v2 — provides **protocol-enforced monetization** with transparent revenue sharing and zero barrier to project creation:
 
 | Action | Cost | Recipient |
 |--------|------|-----------|
@@ -936,7 +990,7 @@ usdc.safeTransferFrom(msg.sender, protocolTreasury, protocolShare);
 
 #### 7.2.4 Revenue Projections
 
-Conservative scenarios for v2 adoption:
+Conservative scenarios for adoption:
 
 | Scenario | Platforms | Avg Clients/Platform | Avg Fee | Annual Volume |
 |----------|-----------|---------------------|---------|---------------|
@@ -987,7 +1041,7 @@ Platforms integrating RWA ID should follow this checklist:
 
 #### Phase 2: Setup
 - [ ] Create project namespace at rwa-id.com
-- [ ] Configure multisig treasury for v2 fees (optional)
+- [ ] Configure multisig treasury for claim fees (optional)
 - [ ] Generate CSV of initial clients
 - [ ] Test CSV upload in staging environment
 
@@ -1168,7 +1222,7 @@ Platforms receive access to analytics dashboard showing:
   - Wallet types (MetaMask, Trust, etc.)
   - Chain distribution
 
-- **Financial Metrics (v2):**
+- **Financial Metrics:**
   - Total revenue collected
   - Revenue split (platform vs protocol)
   - Average fee per claim
@@ -1182,7 +1236,7 @@ Platforms receive access to analytics dashboard showing:
 - Dedicated integration engineer for design partners
 
 **Documentation:**
-- Technical overview: [Notion link]
+- Technical overview: https://dashboard.rwa-id.com/docs
 - API reference: [Coming soon]
 - Video tutorials: Available upon request
 - Sample integrations: GitHub examples repo
@@ -1336,7 +1390,7 @@ RWA ID identities resolve across multiple chains:
 
 | Chain | Status | Resolver Address | Notes |
 |-------|--------|------------------|-------|
-| **Ethereum** | ✅ Live | `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1` | Primary deployment (v2) |
+| **Ethereum** | ✅ Live | `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1` | Primary deployment; resolver unchanged by the v3 cutover |
 | **Base** | ✅ Live | Native ENS | Coinbase L2, growing DeFi |
 | **Optimism** | ✅ Live | Native ENS | Optimistic rollup, low fees |
 | **Arbitrum** | ✅ Live | Native ENS | Fastest growing L2 |
@@ -1403,28 +1457,32 @@ Result cached and returned to Base user
 **Late January 2025:** Platform console and claim portal launch  
 **Early February 2025:** Multi-chain resolution verified  
 **Q1–Q2 2025:** v2 development — ERC-721, USDC fees, mainnet migration  
-**April 2025:** Ethereum mainnet deployment (v2) — RWAIDv2 + WildcardResolverV2  
+**April 2025:** Ethereum mainnet deployment (v2) — RWAIDv2 + WildcardResolverV2
+**Q2–Q3 2026:** Platform console rebuild; on-chain metadata design
+**1 August 2026:** Ethereum mainnet deployment (v3) — RWAIDv3, gateway cutover, 25 namespaces reserved via multisig
 
-### 11.2 Current Phase: v2 Live (Q2 2025)
+### 11.2 Current Phase: v3 Live
 
 **Completed:**
 - ✅ ERC-721 identity tokens (soulbound + transferable)
+- ✅ On-chain token metadata and SVG artwork (v3)
+- ✅ On-chain label validation (v3)
 - ✅ USDC claim fees with 70/30 on-chain split
 - ✅ Free project creation
 - ✅ Namespace reservation (front-running protection)
 - ✅ Identity revocation
 - ✅ Signature-based CCIP-Read resolver (key rotatable)
 - ✅ Multisig governance (`0xa287...75Ab`)
-- ✅ Ethereum mainnet deployment
-- ✅ Multi-chain resolution verified
+- ✅ Ethereum mainnet deployment, gateway pointed at v3
+- ✅ Multi-chain resolution verified end-to-end through real ENS
 
 **In Progress:**
 - 🔄 Onboard first design partner platform
 - 🔄 Gather integration feedback
-- 🔄 Refine dApp UX based on real usage
+- 🔄 Refine console UX based on real usage
 
 **Metrics:**
-- Target: 1-3 production platforms by end of Q2
+- Target: 1-3 production platforms
 - Target: 100-1000 claimed identities
 - Target: 99.9% gateway uptime
 
@@ -1477,57 +1535,77 @@ Result cached and returned to Base user
 #### 12.1.1 Core Registry Interface
 
 ```solidity
-interface IRWAIDRegistry {
+interface IRWAIDv3 {
     // Project management
     function createProject(
-        string calldata slug
-    ) external payable returns (uint256 projectId);
-    
-    function setMerkleRoot(
+        string calldata slug,
+        address treasury,
+        uint256 claimFee,        // USDC, 6 decimals. 0 = protocol minimum
+        bool transferable
+    ) external returns (uint256 projectId);
+
+    function updateMerkleRoot(
         uint256 projectId,
-        bytes32 merkleRoot
+        bytes32 newRoot,
+        uint256 newTotalAllowlisted
     ) external;
-    
-    // Identity claiming
+
+    function updateClaimFee(uint256 projectId, uint256 newFee) external;
+    function updateTreasury(uint256 projectId, address newTreasury) external;
+    function setProjectTransferable(uint256 projectId, bool transferable) external;
+    function setTokenTransferable(uint256 tokenId, bool transferable) external;
+    function pauseProject(uint256 projectId) external;
+    function unpauseProject(uint256 projectId) external;
+    function transferProjectOwnership(uint256 projectId, address newOwner) external;
+
+    // Identity claiming — v3 takes the label itself; the leaf is unchanged:
+    //   leaf = keccak256(abi.encodePacked(claimer, keccak256(bytes(label))))
     function claim(
         uint256 projectId,
-        string calldata name,
+        string calldata label,
         bytes32[] calldata proof
     ) external;
-    
-    function claimWithFee(
-        uint256 projectId,
-        string calldata name,
-        bytes32[] calldata proof
-    ) external payable;
-    
+
+    function revokeIdentity(uint256 projectId, uint256 tokenId) external;
+
     // Queries
-    function ownerOf(
-        uint256 projectId,
-        string calldata name
-    ) external view returns (address);
-    
-    function isClaimed(
-        uint256 projectId,
-        address wallet
-    ) external view returns (bool);
-    
+    function projectNode(uint256 projectId) external view returns (bytes32);
+    function nameNodeFromHash(uint256 projectId, bytes32 nameHash) external view returns (bytes32);
+    function resolveAddr(bytes32 node) external view returns (address);  // gateway entry point
+    function nodeToTokenId(bytes32 node) external view returns (uint256);
+    function fullName(uint256 tokenId) external view returns (string memory);
+    function claimed(uint256 projectId, address wallet) external view returns (bool);
+
     // Events
     event ProjectCreated(
         uint256 indexed projectId,
         string slug,
-        address indexed creator
+        address indexed owner,
+        address treasury,
+        uint256 claimFee,
+        bool transferable
     );
-    
-    event MerkleRootSet(
+
+    event MerkleRootUpdated(
         uint256 indexed projectId,
-        bytes32 merkleRoot
+        bytes32 newRoot,
+        uint256 totalAllowlisted
     );
-    
+
     event IdentityClaimed(
         uint256 indexed projectId,
-        string name,
-        address indexed claimer
+        bytes32 indexed nameHash,
+        address indexed claimer,
+        uint256 tokenId,
+        bytes32 node,
+        uint256 fee,
+        string label
+    );
+
+    event IdentityRevoked(
+        uint256 indexed projectId,
+        bytes32 indexed nameHash,
+        uint256 tokenId
     );
 }
 ```
@@ -1566,27 +1644,27 @@ interface IENSResolver {
 
 ```solidity
 struct Project {
-    string slug;                  // e.g., "platform"
-    address creator;              // Platform admin address
-    address treasury;             // v2: fee recipient
-    bytes32 merkleRoot;           // Current allowlist root
-    uint256 claimFee;            // v2: optional fee in wei
-    uint256 claimedCount;        // Number of claimed identities
-    uint256 totalAllowlisted;    // Total eligible addresses
-    uint256 createdAt;           // Timestamp
-    bool active;                 // Can be paused by admin
+    address owner;               // Platform admin; can be transferred
+    string  slug;                // Normalized, e.g. "platform"
+    bytes32 slugHash;            // keccak256(slug) — used for node derivation
+    address treasury;            // Fee recipient (platform share)
+    uint256 claimFee;            // USDC, 6 decimals. 0 = protocol minimum applies
+    bool    transferable;        // Default transferability for tokens minted here
+    bytes32 merkleRoot;          // Current allowlist root
+    bool    active;              // Can be paused by the project owner
+    uint256 totalClaimed;        // Number of claimed identities
+    uint256 totalRevenue;        // Cumulative USDC charged
 }
 ```
 
-#### 12.2.2 Claim Record
+#### 12.2.2 Identity Metadata (v3)
 
 ```solidity
-struct ClaimRecord {
-    address claimer;             // Wallet that claimed
-    string name;                 // Claimed identifier
+struct IdentityMetadata {
     uint256 projectId;           // Associated project
-    uint256 claimedAt;          // Timestamp
-    uint256 tokenId;            // ERC-721 token ID
+    bytes32 nameHash;            // keccak256(bytes(label))
+    uint256 claimedAt;           // Timestamp
+    string  label;               // v3: the label itself, for tokenURI rendering
 }
 ```
 
@@ -1675,12 +1753,13 @@ RWA ID provides essential identity infrastructure for the tokenized economy:
 - **Universal:** Works across all major chains and wallets
 - **Non-Custodial:** No trust assumptions or custody requirements
 - **Privacy-Preserving:** No PII collection
-- **Sustainable:** Protocol-enforced economics (v2)
+- **Sustainable:** Protocol-enforced economics
 - **Proven Technology:** Built on ENS and EIP-3668 standards
 
 ### 13.2 Current Status
 
-- ✅ **v2 Live:** ERC-721 registry + CCIP-Read resolver deployed on Ethereum mainnet
+- ✅ **v3 Live:** ERC-721 registry + CCIP-Read resolver deployed on Ethereum mainnet (`0x6413e9E6A0D4e05557463A66C34E18192324A2C7`)
+- ✅ **On-Chain Metadata:** Identities render name, description and artwork with no metadata server
 - ✅ **USDC Fees:** 70/30 on-chain revenue split operational
 - ✅ **Free Project Creation:** No ETH gate — any platform can onboard instantly
 - ✅ **Multi-Chain:** Resolution working across 5+ networks
@@ -1702,7 +1781,7 @@ Partner with RWA ID to:
 **For Developers:**
 
 - Explore the codebase: [github.com/RWA-ID/RWA-ID](https://github.com/RWA-ID/RWA-ID)
-- Read technical docs: [Technical Overview](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
+- Read technical docs: [dashboard.rwa-id.com/docs](https://dashboard.rwa-id.com/docs)
 - Try the demo: [rwa-id.com](https://rwa-id.com)
 
 ### 13.4 Vision
@@ -1747,8 +1826,8 @@ By providing neutral, open infrastructure, RWA ID accelerates the adoption of to
 1. **RWA ID GitHub**  
    https://github.com/RWA-ID/RWA-ID
 
-2. **RWA ID Technical Overview**  
-   https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa
+2. **RWA ID Technical Documentation**  
+   https://dashboard.rwa-id.com/docs
 
 3. **RWA ID Website**  
    https://rwa-id.com
@@ -1807,7 +1886,7 @@ By providing neutral, open infrastructure, RWA ID accelerates the adoption of to
 A: No. RWA ID provides infrastructure only. Platforms perform KYC and use RWA ID for identity references.
 
 **Q: Can identities be transferred?**  
-A: No. Identities are soulbound (non-transferable) to ensure stable references.
+A: Soulbound is the default, so normally no. A platform may mark a project — or an individual token — transferable, in which case resolution follows the new owner automatically because the gateway reads `ownerOf(tokenId)`.
 
 **Q: What if my wallet is compromised?**  
 A: Contact your platform. They can revoke access or issue new identity to recovery wallet.
@@ -1822,7 +1901,7 @@ A: Ethereum, Base, Optimism, Arbitrum, Polygon. More coming.
 A: A small USDC fee set by the platform (minimum $0.50). Project creation is free.
 
 **Q: Is my personal information stored?**  
-A: No. Only wallet addresses and chosen pseudonyms.
+A: No. Only wallet addresses and chosen pseudonyms. Note that a platform's allowlist is pinned to IPFS and is public and permanent, so platforms should use pseudonymous labels.
 
 **Q: Can anyone see my identity?**  
 A: Yes. Identities are public like ENS domains.
@@ -1840,7 +1919,7 @@ Website: https://rwa-id.com
 
 **Technical Support:**  
 GitHub: https://github.com/RWA-ID/RWA-ID  
-Documentation: [Technical Overview](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
+Documentation: [dashboard.rwa-id.com/docs](https://dashboard.rwa-id.com/docs)
 
 **Founder:**  
 Hector Morel  
@@ -1854,10 +1933,10 @@ Email: partner@rwa-id.com
 
 ---
 
-**Document Version:** 2.0  
-**Last Updated:** April 2025  
+**Document Version:** 3.0  
+**Last Updated:** August 2026  
 **Authors:** RWA ID Team  
-**License:** Copyright © 2025 RWA ID. All rights reserved.
+**License:** Copyright © 2026 RWA ID. All rights reserved.
 
 ---
 
