@@ -2,13 +2,15 @@
 
 ## Overview
 
-This is an ENS CCIP-Read (Cross-Chain Interoperability Protocol) gateway server for the RWA-ID project. It enables ENS name resolution for a custom subdomain structure (`<label>.<slug>.rwa-id.eth`) by acting as an off-chain resolver that reads data from a smart contract registry deployed on the Linea blockchain.
+An ENS CCIP-Read (EIP-3668) gateway for `<label>.<slug>.rwa-id.eth`. It acts as the
+off-chain half of a wildcard resolver: a resolver on **Ethereum mainnet** reverts with
+`OffchainLookup`, the wallet calls this service, and this service reads the RWA ID
+registry and returns a **signed** answer that the resolver's `resolveWithProof` verifies
+on-chain.
 
-The gateway intercepts ENS resolution requests, parses the DNS-encoded name, queries the on-chain RWA-ID registry contract on Linea, and returns cryptographically signed responses back to the requester — fulfilling the CCIP-Read (EIP-3668) pattern.
-
-There are two implementations present:
-- **Root `index.js`**: An earlier/partial implementation
-- **`rwaid-gateway/index.js`**: A newer, cleaner implementation (this is the primary one to build from)
+There is one implementation: **`rwaid-gateway/index.js`**. (A duplicate at the repo root
+was removed — it was never the deployed file and reading it gave the wrong picture of
+production.)
 
 ## User Preferences
 
@@ -18,58 +20,91 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend
 
-- **Runtime**: Node.js with Express as the HTTP server
-- **Entry point**: `rwaid-gateway/index.js` (preferred) or root `index.js`
-- **Port**: Configurable via `PORT` env var, defaults to `5000`
+- **Runtime**: Node.js with Express
+- **Entry point**: `rwaid-gateway/index.js` — the only implementation
+- **Port**: `PORT`, defaults to `5000`
 
 ### Name Resolution Flow
 
-1. An ENS resolver sends a CCIP-Read request to this gateway HTTP server
-2. The gateway receives a DNS-encoded name (e.g., `<label>.<slug>.rwa-id.eth`)
-3. It parses the name into `label` and `slug` components using `parseName()`
-4. It computes `labelhash` values (keccak256 of lowercased strings)
-5. It queries the on-chain `RWA_ID_REGISTRY` contract on Linea for:
-   - `projectIdBySlugHash(bytes32)` → gets the project ID for the slug
-   - `nameNodeFromHash(uint256, bytes32)` → gets the ENS node for the label under that project
-   - `nodeAddr(bytes32)` → resolves the address for that node
-6. The gateway signs the response using `GATEWAY_SIGNER_PRIVATE_KEY` and returns it
+1. A wallet's ENS lookup hits the mainnet wildcard resolver, which reverts `OffchainLookup`
+2. The wallet calls this gateway with the DNS-encoded name
+3. `parseName()` splits it into `label` and `slug`
+4. `labelhash` = keccak256 of the **lowercased** string (uppercase registrations resolve
+   under their lowercase form)
+5. Against the registry on mainnet:
+   - `projectIdBySlugHash(bytes32) → uint256` (0 means unknown project → 404)
+   - `nameNodeFromHash(uint256, bytes32) → bytes32`
+   - `resolveAddr(bytes32) → address` — returns `ownerOf(nodeToTokenId[node])`, so a
+     transfer is reflected immediately
+6. The gateway signs `(registry, node, addr)` with `GATEWAY_SIGNER_PRIVATE_KEY` and returns it
 
-### Smart Contract Interface (Registry ABI)
+`resolveAddr` is required. The v1 `nodeAddr(bytes32)` mapping does **not** exist on
+v2/v3 and reverts — using it silently breaks every lookup.
 
-The gateway interacts with a deployed registry contract using three read-only functions:
-- `projectIdBySlugHash(bytes32) → uint256`
-- `nameNodeFromHash(uint256, bytes32) → bytes32`
-- `nodeAddr(bytes32) → address`
+### Error handling
 
-### Name Format
+Every failure path returns an HTTP error; the gateway never signs an answer it did not
+actually read. A signed empty would be verified as authentic by `resolveWithProof` and
+cached by wallets as "this name has no address" — strictly worse than an error, which
+makes clients retry. Keep it that way: do not add a `catch` that returns a plausible
+value on a read path.
 
-Names must follow the pattern: `<label>.<slug>.rwa-id.eth`
-- `label`: the individual name being resolved
-- `slug`: identifies the RWA project/namespace
-- Suffix must always be `rwa-id.eth`
+### RPC
+
+An `ethers.FallbackProvider` over Alchemy (when `ALCHEMY_API_KEY` is set) then
+`cloudflare-eth.com`, `ethereum-rpc.publicnode.com` and `1rpc.io/eth`, at quorum 1. One
+provider outage does not take resolution down.
+
+The Alchemy URL embeds the API key, so it is masked (`maskRpc`) in `/health`, in startup
+logs, and in error responses (`safeError`). Never log or return an RPC URL unmasked.
 
 ### Caching
 
-All responses explicitly disable caching (`Cache-Control: no-store`, `Pragma: no-cache`) to ensure fresh blockchain data is always returned.
+Responses set `Cache-Control: no-store` so wallets always get fresh chain data.
 
 ## External Dependencies
 
 ### Blockchain
-- **Linea Network**: L2 blockchain where the RWA-ID registry contract lives. Accessed via JSON-RPC (`LINEA_RPC_URL`).
+
+**Ethereum mainnet.** The registry has lived on mainnet since v2 — this is not a Linea
+deployment, despite the historical `LINEA_RPC_URL` variable name in older revisions.
+
+| | |
+|---|---|
+| RWAIDv3 registry | `0x6413e9E6A0D4e05557463A66C34E18192324A2C7` |
+| ENS wildcard resolver | `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1` |
+| Trusted signer | `0xC9fACcf3a77b553375017efFEe441D9770fAA723` |
+
+The resolver checks only that the signature came from the trusted signer — it never
+inspects which registry was read. A wrong `RWA_ID_REGISTRY` yields valid-looking, wrong
+answers, so there is no default and the process exits when it is unset.
 
 ### NPM Packages
-- **ethers v6**: Blockchain interaction, ABI encoding/decoding, wallet signing, keccak256 hashing
-- **express v4/v5**: HTTP server framework for handling CCIP-Read gateway requests
-- **dotenv**: Environment variable management
+
+- **ethers v6** — contract reads, ABI coding, signing
+- **express v4** — HTTP server
+- **dotenv** — env loading
 
 ### Required Environment Variables
-| Variable | Purpose |
-|---|---|
-| `LINEA_RPC_URL` | JSON-RPC endpoint for the Linea network |
-| `RWA_ID_REGISTRY` | Deployed address of the on-chain registry contract |
-| `GATEWAY_SIGNER_PRIVATE_KEY` | Private key used to sign CCIP-Read responses |
-| `PORT` | HTTP server port (optional, defaults to 5000) |
 
-### Standards
-- **EIP-3668 (CCIP-Read)**: The off-chain lookup standard this gateway implements
-- **ENS**: Ethereum Name Service naming and resolution conventions
+| Variable | Required | Purpose |
+|---|---|---|
+| `RWA_ID_REGISTRY` | yes | registry address; no default, exits if unset |
+| `GATEWAY_SIGNER_PRIVATE_KEY` | yes | must match the resolver's `trustedSigner` |
+| `ALCHEMY_API_KEY` | no | primary RPC; public fallbacks used without it |
+| `PORT` | no | defaults to 5000 |
+
+## Deploying
+
+`.replit` runs `cd rwaid-gateway && npm install && node index.js`.
+
+**Pushing to GitHub does not deploy.** The autoscale deployment serves the last
+**Published** snapshot, independent of the workspace and of git. A clean working tree does
+not mean the running service matches this code — commits can sit unpublished while an
+older build serves traffic. Any change requires a **Publish**. Verify what is actually
+live with `/health`, which reports the registry, signer and masked RPC list.
+
+## Standards
+
+- **EIP-3668 (CCIP-Read)** — the off-chain lookup standard implemented here
+- **ENS** — naming and resolution conventions

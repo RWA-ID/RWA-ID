@@ -23,7 +23,20 @@ const provider = new ethers.FallbackProvider(
   rpcList.map((url, i) => ({ provider: new ethers.JsonRpcProvider(url), priority: i + 1, weight: 1 })),
   1 // quorum of 1 — first responder wins
 );
-console.log("RPC list (first is primary):", rpcList[0], "+ " + (rpcList.length - 1) + " fallbacks");
+
+// The primary RPC URL embeds the Alchemy key. Never print it whole: deploy logs
+// are not a secret store, and a provider error can carry the URL into an HTTP
+// response body.
+const maskRpc = (url) =>
+  String(url)
+    .replace(/\/v2\/[^/\s]+/, "/v2/***")
+    .replace(/([?&](?:api[-_]?key|apikey|key)=)[^&\s]+/gi, "$1***");
+
+/** Strip anything URL-shaped out of an error before it leaves the process. */
+const safeError = (e) =>
+  maskRpc(String(e?.message ?? e)).replace(/https?:\/\/\S+/gi, "[rpc]");
+
+console.log("RPC list (first is primary):", maskRpc(rpcList[0]), "+ " + (rpcList.length - 1) + " fallbacks");
 const GATEWAY_SIGNER_PRIVATE_KEY = (process.env.GATEWAY_SIGNER_PRIVATE_KEY || '').trim();
 if (!GATEWAY_SIGNER_PRIVATE_KEY) throw new Error("Missing GATEWAY_SIGNER_PRIVATE_KEY");
 
@@ -83,12 +96,12 @@ app.get("/health", async (_req, res) => {
     res.json({
       ok: true,
       chainId: network.chainId.toString(),
-      rpcs: rpcList.map(url => url.replace(/\/v2\/[^/]+/, "/v2/***")),
+      rpcs: rpcList.map(maskRpc),
       registry: REGISTRY,
       signer: SIGNER_ADDRESS
     });
   } catch (e) {
-    res.json({ ok: false, error: e.message });
+    res.json({ ok: false, error: safeError(e) });
   }
 });
 
@@ -127,7 +140,7 @@ app.get("/resolve", async (req, res) => {
       signature,
     });
   } catch (e) {
-    res.status(500).json({ error: e.message || String(e) });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -166,7 +179,7 @@ app.get("/ccip", async (req, res) => {
     res.setHeader("Content-Type", "text/plain");
     res.send(encoded);
   } catch (e) {
-    res.status(500).send(e.message || String(e));
+    res.status(500).send(safeError(e));
   }
 });
 
@@ -234,8 +247,8 @@ async function handleCcipRead(req, res) {
     // ENS clients accept JSON: { data: "0x..." }
     res.send(JSON.stringify({ data: encoded, signer: SIGNER_ADDRESS }));
   } catch (e) {
-    console.error("CCIP-Read error:", e.message || String(e));
-    res.status(500).json({ error: e.message || String(e) });
+    console.error("CCIP-Read error:", safeError(e));
+    res.status(500).json({ error: safeError(e) });
   }
 }
 
