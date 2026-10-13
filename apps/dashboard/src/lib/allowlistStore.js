@@ -37,7 +37,7 @@ export function loadAllowlist(projectId) {
 }
 
 export function claimUrl(projectId, cid) {
-  return `${window.location.origin}/claim?claim=${projectId}&proofs=${cid}&v=${REGISTRY_VERSION}`
+  return `${window.location.origin}/claim/?claim=${projectId}&proofs=${cid}&v=${REGISTRY_VERSION}`
 }
 
 const sameRoot = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase()

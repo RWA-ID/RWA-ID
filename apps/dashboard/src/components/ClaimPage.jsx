@@ -90,7 +90,7 @@ export function ClaimStart() {
     try {
       const u = new URL(value.trim(), window.location.origin)
       if (!u.searchParams.get('claim') || !u.searchParams.get('proofs')) throw new Error()
-      navigate(`/claim?${u.searchParams.toString()}`)
+      navigate(`/claim/?${u.searchParams.toString()}`)
     } catch { setBad(true) }
   }
   return (
