@@ -11,7 +11,7 @@ import { readFileSync } from 'fs'
 
 const CONTRACT = process.env.CONTRACT || 'RWAIDv3'
 const artifact = `artifacts/contracts/${CONTRACT}.sol/${CONTRACT}.json`
-const dashboard = 'apps/rwa-id-dashboard/src/lib/contracts.js'
+const dashboard = '../apps/dashboard/src/lib/contracts.js'
 
 const real = JSON.parse(readFileSync(artifact, 'utf8')).abi
 

@@ -77,7 +77,7 @@ jspm_packages/
 lerna-debug.log*
 lib-cov
 logs
-node_modules/
+node_modules
 npm-debug.log*
 out
 pids
