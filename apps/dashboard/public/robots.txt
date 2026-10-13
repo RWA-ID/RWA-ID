@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Claim links are per-project and carry an IPFS CID; they are shared directly,
+# not indexed.
+Disallow: /?claim=
+
+Sitemap: https://dashboard.rwa-id.com/sitemap.xml

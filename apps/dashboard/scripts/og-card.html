@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!--
+  Source for the 1200×630 share cards in public/og/. Render with
+  `node scripts/render-og.mjs` — it loads this file with ?card=home|docs and
+  screenshots #card. Geist is pulled from Google Fonts at render time only.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #F5F5F3;
+    --panel: #EDEDE9;
+    --ink: #0E0F11;
+    --faint: #A3A5A0;
+    --muted: #55575C;
+    --mute-3: #85878C;
+    --green: #4ADE80;
+    --f-sans: 'Geist', system-ui, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box }
+  body { background: #fff; font-family: var(--f-sans) }
+  #card {
+    width: 1200px; height: 630px;
+    background: var(--page);
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1fr 274px;
+    gap: 24px;
+  }
+  .main {
+    background: var(--panel);
+    border-radius: 24px;
+    padding: 46px 52px;
+    display: flex; flex-direction: column;
+  }
+  .badge {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: #E0E0DB;
+    font: 400 13px/1 var(--f-mono);
+    letter-spacing: .14em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .badge i { width: 8px; height: 8px; border-radius: 50%; background: #16A34A; display: block }
+  .spacer { flex: 1; min-height: 26px }
+  h1 {
+    font: 500 62px/1.02 var(--f-sans);
+    letter-spacing: -.04em;
+    color: var(--ink);
+  }
+  h1 .dim { color: var(--faint) }
+  .lede {
+    margin-top: 22px;
+    font: 400 21px/1.45 var(--f-sans);
+    color: var(--muted);
+    max-width: 640px;
+  }
+  .chip {
+    align-self: flex-start;
+    margin-top: 30px;
+    display: inline-flex; align-items: center; gap: 11px;
+    padding: 13px 20px;
+    border-radius: 12px;
+    background: #fff;
+    font: 400 19px/1 var(--f-mono);
+    color: var(--ink);
+  }
+  .chip i { width: 9px; height: 9px; border-radius: 50%; background: #16A34A; display: block }
+
+  .side {
+    background: #0E0F11;
+    border-radius: 24px;
+    padding: 30px 26px;
+    display: flex; flex-direction: column;
+  }
+  .brand { display: flex; align-items: center; gap: 12px }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: #F4F4F2; color: #0E0F11;
+    display: flex; align-items: center; justify-content: center;
+    font: 600 16px/1 var(--f-mono);
+  }
+  .brand-word { font: 600 25px/1 var(--f-sans); letter-spacing: -.03em; color: #F4F4F2 }
+  .side-spacer { flex: 1 }
+  .checks { display: flex; flex-direction: column; gap: 15px }
+  .check { display: flex; align-items: center; gap: 12px; font: 400 14px/1 var(--f-mono); letter-spacing: .07em; color: #E7E7E4; text-transform: uppercase }
+  .check b {
+    width: 21px; height: 21px; border-radius: 50%;
+    background: rgba(74,222,128,.16); color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .side-foot {
+    margin-top: 26px; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.12);
+    font: 400 12.5px/1.7 var(--f-mono);
+    color: rgba(244,244,242,.45);
+    letter-spacing: .06em;
+  }
+  .side-foot span { color: rgba(244,244,242,.72) }
+</style>
+</head>
+<body>
+  <div id="card">
+    <div class="main">
+      <div class="badge"><i></i><span id="badge">Live on Ethereum mainnet</span></div>
+      <div class="spacer"></div>
+      <h1 id="title"></h1>
+      <p class="lede" id="lede"></p>
+      <div class="chip"><i></i><span id="chip"></span></div>
+    </div>
+    <div class="side">
+      <div class="brand">
+        <span class="brand-mark">R</span>
+        <span class="brand-word">RWA·ID</span>
+      </div>
+      <div class="side-spacer"></div>
+      <div class="checks" id="checks"></div>
+      <div class="side-foot">REGISTRY V3<br><span id="addr"></span></div>
+    </div>
+  </div>
+
+<script>
+  const CARDS = {
+    home: {
+      badge: 'Live on Ethereum mainnet',
+      title: 'Identity issuance<br><span class="dim">and management</span><br>for RWA platforms.',
+      lede: 'Issue verifiable, ENS-compatible onchain identities to your clients, then administer them onchain.',
+      chip: 'joe.yourfirm.rwa-id.eth',
+      checks: ['ENS-native', 'Non-custodial', 'No backend', 'Mainnet'],
+    },
+    docs: {
+      badge: 'Registry v3 · documentation',
+      title: 'Docs for the<br><span class="dim">v3 registry.</span>',
+      lede: 'Namespaces, Merkle allowlists, USDC claim fees, onchain identity NFTs and ENS resolution — with the contract surface in full.',
+      chip: 'dashboard.rwa-id.com/docs',
+      checks: ['Quickstart', 'Resolution', 'Contract ref', 'What’s new'],
+    },
+  }
+  const key = new URLSearchParams(location.search).get('card') || 'home'
+  const c = CARDS[key]
+  document.getElementById('badge').textContent = c.badge
+  document.getElementById('title').innerHTML = c.title
+  document.getElementById('lede').textContent = c.lede
+  document.getElementById('chip').textContent = c.chip
+  document.getElementById('addr').textContent = '0x6413…A2C7'
+  document.getElementById('checks').innerHTML = c.checks
+    .map(t => `<div class="check"><b>✓</b>${t}</div>`).join('')
+</script>
+</body>
+</html>
