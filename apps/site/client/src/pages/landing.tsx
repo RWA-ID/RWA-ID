@@ -7,8 +7,8 @@ const CONTRACT_ADDRESS = "0x6413e9E6A0D4e05557463A66C34E18192324A2C7";
 const EXPLORER_URL = `https://etherscan.io/address/${CONTRACT_ADDRESS}#code`;
 const DASHBOARD_URL = "https://dashboard.rwa-id.com";
 const CONTACT_EMAIL = "partner@rwa-id.com";
-const X_URL    = "https://x.com/rwa_ideth";
-const X_HANDLE = "@rwa_ideth";
+const X_URL    = "https://x.com/rwaidentity";
+const X_HANDLE = "@rwaidentity";
 const WEB3FORMS_KEY = "c4621259-2059-4c10-8cb4-d6e8cba3d236";
 
 /* The six chains a name answers on. `file` is the asset in /public/brand/chains. */
