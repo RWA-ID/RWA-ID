@@ -8,7 +8,8 @@
     "constructorArgs": ["0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "0x5f11a48230f7CdaB91A2361576239091E4b1165b"],
     "paymentToken": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     "protocolTreasury": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
-    "owner": "pending: Safe 0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab must call acceptOwnership()",
+    "owner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
+    "ownerAcceptedTx": "0xff9d4bffa268d34a055adf4d2ad0962033c7d23cb546a2b0f021696cc5791d23",
     "reservedSlugs": 36
   }
 }
