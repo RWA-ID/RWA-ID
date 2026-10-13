@@ -77,7 +77,19 @@ module.exports = {
   },
 
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY || "",
+    // Blockscout ignores the key but hardhat-verify wants one per custom chain.
+    apiKey: { mainnet: ETHERSCAN_API_KEY || "", sepolia: ETHERSCAN_API_KEY || "", robinhood: "blockscout" },
+    customChains: [
+      {
+        network: "robinhood",
+        chainId: 4663,
+        urls: {
+          apiURL: "https://robinhoodchain.blockscout.com/api",
+          browserURL: "https://robinhoodchain.blockscout.com",
+        },
+      },
+    ],
   },
+  sourcify: { enabled: false },
 };
 
