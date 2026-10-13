@@ -1,7 +1,8 @@
-# Hardhat
+# Hardhat (protocol/)
 artifacts/
 cache/
 typechain-types/
+edr-cache/
 
 # Sensitive / generated
 *.bak
@@ -15,9 +16,9 @@ blockscout-*.json
 # Replit prompts (internal)
 REPLIT-*.md
 
-# Sub-packages (managed in their own repos)
-apps/
-packages/
+# Cloudflare
+.wrangler/
+.dev.vars
 
 # Metadata / IPFS uploads
 metadata/
