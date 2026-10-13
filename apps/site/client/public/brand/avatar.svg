@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Client avatar">
+  <defs>
+    <linearGradient id="rwaid-av-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#7C5CFF"/>
+    </linearGradient>
+    <linearGradient id="rwaid-av-skin" x1=".2" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#9A6242"/>
+      <stop offset="1" stop-color="#7C4A2E"/>
+    </linearGradient>
+    <clipPath id="rwaid-av-clip"><circle cx="32" cy="32" r="32"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#rwaid-av-clip)">
+    <rect width="64" height="64" fill="url(#rwaid-av-bg)"/>
+
+    <!-- neck, drawn first so the collar overlaps it -->
+    <path d="M26.8 31h10.4v10.6a5.2 5.2 0 0 1-10.4 0V31Z" fill="#6E402720"/>
+    <path d="M26.8 31h10.4v9.8a5.2 5.2 0 0 1-10.4 0V31Z" fill="url(#rwaid-av-skin)"/>
+
+    <!-- jacket -->
+    <path d="M32 38.4c-11.3 0-19.8 7.4-19.8 17.1V64h39.6v-8.5c0-9.7-8.5-17.1-19.8-17.1Z" fill="#141A28"/>
+    <!-- shirt -->
+    <path d="M26.9 38.9 32 50.4l5.1-11.5a25 25 0 0 1 3.1.9L32 64h-.1l-8.1-24.2c1-.4 2-.7 3.1-.9Z" fill="#F1F1ED"/>
+    <!-- lapels -->
+    <path d="M23.8 39.8 32 64h-4.6l-6.8-21.9a17 17 0 0 1 3.2-2.3Zm16.4 0a17 17 0 0 1 3.2 2.3L36.6 64H32l8.2-24.2Z" fill="#1E2739"/>
+    <!-- tie -->
+    <path d="m32 50.4 2.8 3.4L33.4 64h-2.8l-1.4-10.2L32 50.4Z" fill="#1D4ED8"/>
+
+    <!-- head -->
+    <ellipse cx="32" cy="23.6" rx="11" ry="12.4" fill="url(#rwaid-av-skin)"/>
+    <!-- hair -->
+    <path d="M32 8.8c6.6 0 11.4 4.4 11.4 10.8 0 1.9-.3 3.6-.9 5.1l-1.7-5.6c-2.4 1.5-5.4 2.2-8.8 2.2-3.9 0-7-.8-9.4-2.5l-1.2 5.9a15 15 0 0 1-.8-5.1c0-6.4 4.8-10.8 11.4-10.8Z" fill="#17110D"/>
+    <!-- brow shadow, eyes, mouth: enough to read as a face at 24px -->
+    <ellipse cx="27.6" cy="23.4" rx="1.35" ry="1.5" fill="#17110D"/>
+    <ellipse cx="36.4" cy="23.4" rx="1.35" ry="1.5" fill="#17110D"/>
+    <path d="M29.2 29.1a4.6 4.6 0 0 0 5.6 0" fill="none" stroke="#4E2C1A" stroke-width="1.3" stroke-linecap="round"/>
+  </g>
+</svg>

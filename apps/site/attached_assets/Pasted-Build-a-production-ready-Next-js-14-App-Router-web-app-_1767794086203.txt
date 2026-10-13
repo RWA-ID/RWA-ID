@@ -1,0 +1,102 @@
+Build a production-ready Next.js 14 (App Router) web app for RWA-ID with two primary flows:
+
+A) Platform Onboarding (first priority)
+B) Public Self-Claim (second priority)
+
+Domain routing:
+- / = landing page
+- /platform = platform dashboard + onboarding wizard
+- /claim = public self-claim page (supports /claim?slug=securitize)
+
+Tech requirements:
+- Next.js 14 App Router + TypeScript
+- TailwindCSS
+- wagmi + viem for wallet + contract calls
+- Support Linea mainnet chainId 59144
+- Use server-side API routes for proof generation and storage
+- Simple modern UI (clean, minimal, “cool”, not cluttered)
+- No editing required by user besides adding env vars
+
+ENV VARS (must read from process.env):
+NEXT_PUBLIC_LINEA_RPC_URL=https://rpc.linea.build
+NEXT_PUBLIC_RWA_ID_REGISTRY=0x74aACeff8139c84433befB922a8E687B6ba51F3a
+
+Optional:
+NEXT_PUBLIC_GATEWAY_HEALTH=https://rwaid-gatewayzip--nftworldeth.replit.app/health
+
+Core contract ABI fragments (keep minimal & aligned with scripts):
+Create a file src/abis/RwaIdRegistry.ts exporting `RWA_ID_REGISTRY_ABI` containing:
+
+- function createProject(string slug, string baseURI, bool soulbound) payable returns (uint256 projectId)
+- function projectIdBySlugHash(bytes32 slugHash) view returns (uint256)
+- function setAllowlistRoot(uint256 projectId, bytes32 badgeType, bytes32 merkleRoot) external
+- function claimSoulbound(uint256 projectId, bytes32 badgeType, bytes32 nameHash, string name, bytes32[] proof) external
+
+If exact names differ at runtime, print a clear error with instructions where to update ABI signatures.
+
+Data model:
+- Platform uploads CSV with columns: name,address
+  where name is label only (e.g. hector) and address is 0x wallet.
+- Leaves: keccak256(abi.encodePacked(address, nameLowercase)) OR match the existing on-chain/scripts leaf format.
+IMPORTANT: implement leaf hashing to match existing scripts used to generate allowlist_proofs.json.
+Add a toggle “Leaf format” hidden under Advanced, default set to match current production (address + name lowercase).
+Compute Merkle root with sorted pairs.
+
+Backend API:
+- POST /api/platform/upload
+  Inputs: slug, csvText
+  Behavior:
+    - Parse CSV
+    - Build Merkle tree
+    - Store: slug -> { merkleRoot, rows } in a simple durable store
+    - For Replit, use SQLite (better) or filesystem JSON if SQLite isn’t available
+    - Return merkleRoot + rowCount
+- GET /api/proof?slug=&name=&address=
+  Returns: { proof: bytes32[], nameHash: bytes32 }
+  Proof is generated from stored Merkle tree dataset (do NOT require uploading CSV again).
+
+Platform UI (/platform):
+Wizard steps:
+1) Connect wallet (Linea)
+2) Create Project:
+   - inputs: slug, baseURI (default placeholder), soulbound toggle
+   - show required projectFee if available; otherwise show “tx will require fee”
+   - on submit: call createProject (payable) then confirm projectId
+3) Upload CSV allowlist:
+   - upload CSV
+   - send to POST /api/platform/upload
+   - show merkleRoot + row count
+4) Set Allowlist Root:
+   - calls setAllowlistRoot(projectId, badgeType=0x00..00, merkleRoot)
+5) Show “Claim Link” button -> /claim?slug=...
+
+Claim UI (/claim):
+- Inputs: slug (from query param), name(label)
+- Connect wallet
+- Call GET /api/proof with slug + label + connected wallet address
+- Show “Eligible” or “Not eligible”
+- If eligible: call claimSoulbound(projectId, badgeType, nameHash, name, proof)
+- After tx confirmed: show success + resolved name string: {label}.{slug}.rwa-id.eth
+
+UI/UX:
+- Modern minimal dark/light friendly
+- Clear headings:
+  - “For Platforms: Create your RWA-ID namespace”
+  - “For Users: Claim your identity”
+- Emphasize “Supports millions of allowlisted claims via Merkle root”
+- Add small “How it works” accordion
+
+Quality:
+- Strong error handling
+- Show network mismatch prompts (“Switch to Linea”)
+- Loading states, tx hash links
+- No secrets in client; only public vars prefixed NEXT_PUBLIC.
+- Server routes must never log CSV contents.
+
+Deliverable:
+- A working Replit app that runs with the provided env vars and can create projects, upload CSV, set root, and claim.
+
+Also include a README in the repo with:
+- What env vars to set
+- How to use /platform and /claim
+- Leaf format details

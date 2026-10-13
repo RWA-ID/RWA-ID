@@ -1,0 +1,166 @@
+Confirm that you followed everything below if not please update 
+- Routes:
+  1) "/" -> Landing (explains product, CTA buttons)
+  2) "/console" -> Platform Console (project creation FIRST, then allowlist)
+  3) "/claim" -> Public Self-Claim page
+
+CHAIN + CONTRACT
+- Target chain: Linea (chainId 59144)
+- Registry contract (Linea):
+  REGISTRY = 0x74aACeff8139c84433befB922a8E687B6ba51F3a
+
+IMPORTANT HASHING FORMAT (MUST MATCH CONTRACT & scripts)
+- slugHash: keccak256( utf8(lowercase(trim(slug))) )
+- nameHash: keccak256( utf8(lowercase(trim(label))) )
+- leaf: keccak256( abi.encodePacked(address, nameHash) )
+- Merkle tree: merkletreejs with sortPairs: true
+
+TECH STACK
+- Next.js (App Router), TypeScript
+- Tailwind CSS
+- wagmi + viem + RainbowKit
+- papaparse for CSV
+- merkletreejs + keccak256 for Merkle roots/proofs
+
+UI STYLE
+- Very simple, modern, cool.
+- Clean typography, subtle gradients, rounded cards.
+- Minimal but premium look.
+
+PAGES
+
+(1) LANDING "/"
+- Hero title: "RWA-ID"
+- Subtitle: "Allowlisted ENS identities at internet scale."
+- 3 bullets:
+  - Platforms create a Project ID (slug + settings)
+  - Upload CSV allowlist (millions supported) -> 1 Merkle root transaction
+  - Users claim their subdomain publicly at rwa-id.com/claim
+- CTA buttons:
+  - "Platform Console" -> /console
+  - "Claim" -> /claim
+- Footer shows chain + registry address
+
+(2) PLATFORM CONSOLE "/console" (THIS IS FIRST IN FLOW)
+Section A: Create Project
+- Inputs:
+  - Project Slug (example: "securitize")
+  - baseURI (optional; default empty string)
+  - soulbound toggle (default false)
+- Button: "Create Project"
+- On click:
+  - Calls createProjectWithSlug(slug, soulbound, baseURI) on REGISTRY
+  - Displays resulting projectId from tx receipt decode or from a follow-up read:
+    - projectIdBySlugHash(slugHash) (slugHash defined above)
+- After project created, lock the slug + show projectId.
+
+Section B: Create Allowlist Root (Mode C)
+- Upload CSV file with columns: name,address
+  - name = label part (ex: "hector"), not full domain
+  - address = wallet address
+- Validate:
+  - address must be valid EVM address
+  - name non-empty
+  - normalize: name.trim().toLowerCase()
+- Build Merkle:
+  - nameHash = keccak256(utf8(nameLower))
+  - leaf = keccak256(abi.encodePacked(address, nameHash))
+    - In frontend, do packed bytes: address(20 bytes) + nameHash(32 bytes) then keccak256
+  - MerkleTree(leaves, keccak256, { sortPairs: true })
+  - root = tree.getHexRoot()
+- Show:
+  - count of valid rows
+  - merkleRoot
+- Window fields:
+  - validFrom (optional; default 0)
+  - validTo (optional; default 0)
+- Button: "Set Allowlist Root (1 tx)"
+  - Calls setAllowlistRootForBadgeWithWindow(projectId, badgeType, root, validFrom, validTo)
+  - badgeType rules:
+    - For now use investor badge type = bytes32(0) == 0x000...000
+- After success:
+  - Auto-generate + download proofs file:
+    allowlist_proofs_<slug>_project<id>.json
+  - Proof file format:
+    {
+      "chainId": 59144,
+      "registry": "0x74aA...",
+      "slug": "<slug>",
+      "slugHash": "0x...",
+      "projectId": "<id>",
+      "badgeType": "0x000..0",
+      "merkleRoot": "0x...",
+      "validFrom": "<number>",
+      "validTo": "<number>",
+      "entries": {
+        "<addressLower>": { "name": "<nameLower>", "nameHash": "0x...", "proof": ["0x..", ...] }
+      }
+    }
+- Add a helper text explaining:
+  "Platforms can support millions: only the Merkle root goes on-chain; proofs can be hosted as JSON on your servers."
+
+(3) CLAIM PAGE "/claim" (PUBLIC SELF-CLAIM)
+- Inputs:
+  - Project Slug
+  - Label/Name (example: "hector")
+  - Proofs source:
+    Option 1: "Proofs JSON URL" input (fetch)
+    Option 2: "Upload proofs JSON" file
+    Option 3: "Paste proofs JSON" textarea
+- Connect wallet
+- Determine projectId:
+  - compute slugHash then call projectIdBySlugHash(slugHash)
+- Determine badgeType:
+  - default bytes32(0)
+- Determine nameHash:
+  - keccak256(utf8(lowercase(trim(name))))
+- Find proof:
+  - from entries[addressLower].proof
+- Button: "Claim"
+  - Calls claimFor(projectId, badgeType, recipient, nameHash, proof)
+    - recipient defaults to connected wallet
+- Show success message:
+  "Claimed: <name>.<slug>.rwa-id.eth"
+- Add read-only section:
+  - computed slugHash
+  - projectId
+  - nameHash
+  - badgeType
+  - registry
+
+ABIs (MINIMAL) — USE THESE EXACTLY
+Create a file: src/lib/registryAbi.ts exporting REGISTRY_ABI with these fragments:
+
+- function createProjectWithSlug(string slug, bool soulbound, string baseURI_) payable returns (uint256 projectId)
+- function projectIdBySlugHash(bytes32 slugHash) view returns (uint256)
+- function setAllowlistRootForBadgeWithWindow(uint256 projectId, bytes32 badgeType, bytes32 root, uint64 validFrom, uint64 validTo) external
+- function setAllowlistRootForBadge(uint256 projectId, bytes32 badgeType, bytes32 root) external   (fallback if window fn not present)
+- function claimFor(uint256 projectId, bytes32 badgeType, address recipient, bytes32 nameHash, bytes32[] proof) external
+- function claimSoulbound(uint256 projectId, bytes32 badgeType, bytes32 nameHash, bytes32[] proof) external (optional)
+
+Also export constants:
+- REGISTRY_ADDRESS
+- LINEA_CHAIN config for wagmi
+
+WALLET / NETWORK
+- Reown Project ID a5641b37fa2de3fa096da490333e3492
+- If not on Linea, show a “Switch to Linea” warning and disable tx buttons.
+
+PRODUCTION DETAILS
+- Use environment var NEXT_PUBLIC_REGISTRY_ADDRESS (default to 0x74aA...)
+- Use environment var NEXT_PUBLIC_CHAIN_ID (default 59144)
+- Use a public RPC: https://rpc.linea.build for reads (viem publicClient)
+- Make the app resilient:
+  - try/catch around reads and writes
+  - show clear errors
+  - never crash on missing proof; show “not allowlisted” or “proof not found”
+- Keep all text short and clear.
+
+DELIVERABLES
+- Working Next.js project with all pages
+- Modern UI with Tailwind
+- Console flow is first, then claim
+- Hashing/proofs match exact format above
+- Ready for hosting at rwa-id.com and routes /console and /claim
+
+Start by generating the full codebase, then run/build to ensure it compiles.

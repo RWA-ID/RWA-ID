@@ -1,0 +1,46 @@
+We have a dApp on Replit for RWA ID (Linea mainnet). The “Set Allowlist Root” transaction is showing a very high gas cost (~$80) which is not expected because the on-chain call should only store a few bytes32 values.
+
+Please fix the gas estimation / tx construction issue.
+
+Context:
+- Chain: Linea mainnet (chainId 59144)
+- Registry: 0x74aACeff8139c84433befB922a8E687B6ba51F3a
+- The function should be called with ONLY small args:
+setAllowlistRootForBadge(projectId, badgeType, root, validFrom, validTo)
+OR setAllowlistRootForBadge(projectId, badgeType, root) depending on ABI
+- The Merkle root is a single bytes32 and must be computed locally.
+- We must NOT send proofs, CSV content, addresses list, or any big payload onchain.
+
+Tasks:
+1) Confirm the dApp is connected to the correct chain:
+- Enforce chainId === 59144 before enabling the Set Root button.
+- Show a clear “Switch to Linea” prompt otherwise.
+
+2) Confirm the dApp is calling the correct contract:
+- Replace any old registry address with:
+0x74aACeff8139c84433befB922a8E687B6ba51F3a
+- Make the address a single source of truth (env var NEXT_PUBLIC_RWA_ID_REGISTRY)
+
+3) Confirm the dApp is calling the correct function signature and is NOT sending large data:
+- On click “Set Allowlist Root”, log the exact tx args and calldata length before sending.
+- It should only include: projectId, badgeType, merkleRoot, validFrom, validTo
+- If calldata is large, identify what’s being included and remove it.
+
+4) Improve gas estimation reliability:
+- Before sending the tx, call `estimateGas` explicitly.
+- If estimateGas fails or returns an unusually large number, show a warning and do NOT send.
+- Set a reasonable max gas limit if needed (e.g., 300k–600k) after a successful estimate, but do not hardcode huge values.
+
+5) Add a Safe fallback flow (recommended):
+- If the registry owner is a Safe (contract address), provide a “Submit via Safe” option:
+- generate transaction data (to, value=0, data) and show a button to open Safe Transaction Builder / or allow the user to copy calldata.
+- This avoids MetaMask misestimation and is the correct flow when registry is Safe-owned.
+
+6) UI:
+- Show the expected cost range (cents to a few dollars) and explain why.
+- Show the estimated gas limit and max fee so reviewers can see it’s sane.
+
+Deliverable:
+- After changes, Set Allowlist Root should estimate at a normal Linea cost (not $80).
+- The tx calldata should be small (root-only).
+- Provide console logs confirming the args and calldata length for debugging.
