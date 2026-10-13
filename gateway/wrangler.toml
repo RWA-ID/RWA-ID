@@ -1,0 +1,21 @@
+name = "rwa-id-gateway"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Keep true. Once any resolver or client holds the workers.dev URL, retiring it
+# breaks them; a custom domain ADDS a hostname, it never replaces this one.
+workers_dev = true
+preview_urls = false
+
+# gateway.rwa-id.com is wired up after the rwa-id.com zone moves to Cloudflare:
+# [[routes]]
+# pattern = "gateway.rwa-id.com"
+# custom_domain = true
+
+[vars]
+# Public addresses, so plain vars. The secrets — GATEWAY_SIGNER_PRIVATE_KEY and
+# ALCHEMY_API_KEY (plus optional ROBINHOOD_RPC_URL / MAINNET_RPC_URL) — are set
+# with `wrangler secret put` and must NOT be declared here: a var of the same
+# name shadows the secret on every deploy.
+V4_REGISTRY = "0xb99c4333DEb732B30D83f03cAb92fe855B21999a" # RWAIDv4, Robinhood Chain
+V3_REGISTRY = "0x6413e9E6A0D4e05557463A66C34E18192324A2C7" # RWAIDv3, Ethereum mainnet
