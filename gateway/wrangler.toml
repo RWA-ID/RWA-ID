@@ -7,10 +7,12 @@ compatibility_date = "2026-09-01"
 workers_dev = true
 preview_urls = false
 
-# gateway.rwa-id.com is wired up after the rwa-id.com zone moves to Cloudflare:
-# [[routes]]
-# pattern = "gateway.rwa-id.com"
-# custom_domain = true
+# The hostname the mainnet resolver calls (its URL list holds
+# https://gateway.rwa-id.com/{sender}/{data}.json). Moving the origin is a DNS
+# change, never an onchain one, as long as the resolver points here.
+[[routes]]
+pattern = "gateway.rwa-id.com"
+custom_domain = true
 
 [vars]
 # Public addresses, so plain vars. The secrets — GATEWAY_SIGNER_PRIVATE_KEY and
