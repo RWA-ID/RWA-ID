@@ -1,10 +1,10 @@
 {
-  "name": "rwa-id",
+  "name": "@rwa-id/protocol",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "RWA ID registry contracts, tests and deploy scripts (Hardhat)",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "test": "hardhat test"
   },
   "keywords": [],
   "author": "",
@@ -38,5 +38,6 @@
     "merkletreejs": "^0.6.0",
     "papaparse": "^5.5.3",
     "viem": "^2.43.5"
-  }
+  },
+  "private": true
 }

@@ -291,10 +291,14 @@ emits ERC-4906 so marketplaces re-read.
 
 ```bash
 git clone https://github.com/RWA-ID/RWA-ID.git
-cd RWA-ID
+cd RWA-ID/protocol
 npm install
 cp .env.example .env   # fill in your keys
 ```
+
+Every command in this section runs from `protocol/`. The apps and the gateway each
+have their own `package.json` and are installed separately — see
+[Repository Structure](#-repository-structure).
 
 ### Run Tests
 
@@ -350,32 +354,40 @@ change can pass a build and only fail in a user's wallet. This diffs the two.
 
 ## 📦 Repository Structure
 
+One repository holds every part of RWA ID. Each top-level folder installs and
+deploys on its own; there is no shared workspace.
+
 ```
-contracts/
-  RWAIDv3.sol                    — Current registry (adds on-chain token metadata)
-  RWAIDv2.sol                    — Superseded registry (no tokenURI)
-  RwaIdWildcardResolverV2.sol    — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
-  mocks/MockUSDC.sol             — Test USDC (Sepolia only)
-  RwaIdRegistry.sol              — v1 contract (legacy)
-  RwaIdWildcardResolver.sol      — v1 resolver (legacy)
-scripts/
-  deploy-v3.js                   — Deploy RWAIDv3
-  deploy-mainnet.js              — Deploy v2 (historical)
-  deploy-sepolia.js              — Deploy to Sepolia testnet
-  reserve-slugs-v3.js            — Queue v3 slug reservations in the Safe
-  reserve-slugs.js               — v2 equivalent (historical)
-  verify-reservations.js         — Verify reserved slugs on-chain
-  set-trusted-signer.js          — Update gateway signer via Safe multisig
-  v3-metadata-check.js           — Verify v3 metadata + v2 allowlist compatibility
-  check-dashboard-abi.mjs        — Diff the console's ABI against the compiled contract
-test/
-  RWAIDv2.test.js                — 68 tests: inherited registry logic
-  RWAIDv3.test.js                — 44 tests: metadata, label rules, escape hatches
+protocol/                        — Registry contracts, tests, deploy scripts (Hardhat)
+  contracts/
+    RWAIDv3.sol                  — Current registry (adds on-chain token metadata)
+    RWAIDv2.sol                  — Superseded registry (no tokenURI)
+    RwaIdWildcardResolverV2.sol  — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
+    mocks/MockUSDC.sol           — Test USDC (Sepolia only)
+    RwaIdRegistry.sol            — v1 contract (legacy)
+    RwaIdWildcardResolver.sol    — v1 resolver (legacy)
+  scripts/
+    deploy-v3.js                 — Deploy RWAIDv3
+    deploy-mainnet.js            — Deploy v2 (historical)
+    deploy-sepolia.js            — Deploy to Sepolia testnet
+    reserve-slugs-v3.js          — Queue v3 slug reservations in the Safe
+    reserve-slugs.js             — v2 equivalent (historical)
+    verify-reservations.js       — Verify reserved slugs on-chain
+    set-trusted-signer.js        — Update gateway signer via Safe multisig
+    v3-metadata-check.js         — Verify v3 metadata + v2 allowlist compatibility
+    check-dashboard-abi.mjs      — Diff the console's ABI against the compiled contract
+  test/
+    RWAIDv2.test.js              — 68 tests: inherited registry logic
+    RWAIDv3.test.js              — 44 tests: metadata, label rules, escape hatches
 apps/
-  rwa-id-dashboard/              — Platform console (own repo: RWA-ID/RWA-ID-Dashboard)
-packages/
-  rwaid-gateway/                 — CCIP-Read gateway (deployed on Replit; not tracked here)
+  dashboard/                     — Platform console, dashboard.rwa-id.com (Vite, Cloudflare Pages)
+  site/                          — Marketing site, rwa-id.com
+gateway/                         — CCIP-Read gateway, gateway.rwa-id.com
+whitepaper.md
 ```
+
+`apps/dashboard`, `apps/site` and `gateway` were separate repositories until
+October 2026 and were imported with their full history (`git log -- apps/site`).
 
 ---
 

@@ -1,0 +1,8 @@
+# Serve the real per-route HTML (own <title> and OG card) before the SPA
+# fallback. First match wins, so these must stay above the catch-all.
+/docs       /docs/index.html      200
+/privacy    /privacy/index.html   200
+/terms      /terms/index.html     200
+/refunds    /refunds/index.html   200
+
+/*          /index.html           200

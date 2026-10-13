@@ -1,0 +1,595 @@
+Instead of users uploading a proof file to claim their identity, the platform console
+will auto-upload the proof JSON to IPFS after setting the Merkle root. This generates
+a shareable claim URL. When a user opens that URL and connects their wallet, the app
+fetches the proofs from IPFS and automatically finds their entry — zero file handling
+for end users.
+
+**Full flow:**
+1. Platform uploads CSV → console builds Merkle tree → sets root on-chain → uploads proofs to IPFS
+2. Console shows shareable URL: `https://[app-domain]/claim/[projectId]/[ipfsCid]`
+3. Platform sends that URL to their clients
+4. User opens URL → connects wallet → proof auto-detected → approve USDC → claim
+5. Done. User never touches a file.
+
+---
+
+## Step 1 — Add a Pinata Upload API Route
+
+Create `app/api/upload-proofs/route.ts`:
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.PINATA_JWT}`,
+    },
+    body: JSON.stringify({
+      pinataContent: body,
+      pinataMetadata: {
+        name: `rwa-id-proofs-project-${body.projectId}-${Date.now()}`,
+      },
+      pinataOptions: { cidVersion: 1 },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    return NextResponse.json({ error: err }, { status: 500 });
+  }
+
+  const data = await res.json();
+  return NextResponse.json({ cid: data.IpfsHash });
+}
+```
+
+Add `PINATA_JWT` to your Replit Secrets (same value as in your local .env).
+
+---
+
+## Step 2 — Update the Platform Console (app/page.tsx)
+
+After the `updateMerkleRoot` transaction confirms, automatically upload the proof
+data to IPFS and display the shareable claim URL.
+
+### Add this function to page.tsx:
+
+```ts
+async function uploadProofsToIPFS(proofData: object): Promise<string> {
+  const res = await fetch("/api/upload-proofs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(proofData),
+  });
+  if (!res.ok) throw new Error("IPFS upload failed");
+  const { cid } = await res.json();
+  return cid;
+}
+```
+
+### Update the transaction success handler:
+
+After the `updateMerkleRoot` transaction confirms:
+
+```ts
+// 1. Upload proofs to IPFS
+setStatus("Uploading proofs to IPFS...");
+const cid = await uploadProofsToIPFS(proofData);
+
+// 2. Build the claim URL
+const claimUrl = `${window.location.origin}/claim/${projectId}/${cid}`;
+
+// 3. Show the claim URL to the platform
+setClaimUrl(claimUrl);
+setStatus("Done");
+```
+
+### Add a claim URL display section to the UI:
+
+Show this after a successful upload. Make it easy to copy:
+
+```tsx
+{claimUrl && (
+  <div style={{
+    marginTop: 24,
+    padding: 20,
+    background: "#0d1f0d",
+    border: "1px solid #22c55e",
+    borderRadius: 8,
+  }}>
+    <p style={{ color: "#22c55e", fontWeight: 600, marginBottom: 8 }}>
+      ✅ Allowlist live — share this link with your clients:
+    </p>
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <input
+        readOnly
+        value={claimUrl}
+        style={{
+          flex: 1,
+          background: "#111",
+          border: "1px solid #333",
+          borderRadius: 6,
+          padding: "8px 12px",
+          color: "#fff",
+          fontFamily: "monospace",
+          fontSize: 13,
+        }}
+      />
+      <button
+        onClick={() => navigator.clipboard.writeText(claimUrl)}
+        style={{
+          padding: "8px 16px",
+          background: "#22c55e",
+          color: "#000",
+          border: "none",
+          borderRadius: 6,
+          cursor: "pointer",
+          fontWeight: 600,
+        }}
+      >
+        Copy
+      </button>
+    </div>
+    <p style={{ color: "#666", fontSize: 12, marginTop: 8 }}>
+      Proofs stored on IPFS · CID: {cid}
+    </p>
+  </div>
+)}
+```
+
+### Remove the proof JSON file download:
+
+Delete the code that triggers a local file download (the `URL.createObjectURL` /
+`a.click()` pattern). The IPFS upload replaces it. The platform no longer needs
+to distribute a file manually.
+
+---
+
+## Step 3 — Create the Claim Page: app/claim/[projectId]/[cid]/page.tsx
+
+Create the file at that exact path. This is a Next.js dynamic route.
+
+```tsx
+"use client";
+
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { RWAID_V2_ADDRESS, USDC_ADDRESS, rwaIdV2Abi, usdcAbi } from "../../../lib/rwaIdAbi";
+
+// IPFS gateways to try in order
+const GATEWAYS = [
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+  "https://ipfs.io/ipfs/",
+];
+
+interface ProofEntry {
+  name: string;
+  address: string;
+  nameHash: `0x${string}`;
+  proof: `0x${string}`[];
+}
+
+interface ProofFile {
+  projectId: number;
+  root: string;
+  entries: ProofEntry[];
+}
+
+export default function ClaimPage() {
+  const { projectId, cid } = useParams<{ projectId: string; cid: string }>();
+  const { address, isConnected } = useAccount();
+
+  const [proofFile, setProofFile]     = useState<ProofFile | null>(null);
+  const [userEntry, setUserEntry]     = useState<ProofEntry | null>(null);
+  const [fetchError, setFetchError]   = useState<string>("");
+  const [fetching, setFetching]       = useState(true);
+  const [claimSuccess, setClaimSuccess] = useState(false);
+
+  // ── Fetch proof file from IPFS ───────────────────────────────────────────
+  useEffect(() => {
+    async function fetchProofs() {
+      setFetching(true);
+      setFetchError("");
+      for (const gateway of GATEWAYS) {
+        try {
+          const res = await fetch(`${gateway}${cid}`, { signal: AbortSignal.timeout(8000) });
+          if (res.ok) {
+            const data: ProofFile = await res.json();
+            setProofFile(data);
+            setFetching(false);
+            return;
+          }
+        } catch {}
+      }
+      setFetchError("Could not load proofs from IPFS. Try again in a moment.");
+      setFetching(false);
+    }
+    fetchProofs();
+  }, [cid]);
+
+  // ── Auto-detect user's entry when wallet connects ────────────────────────
+  useEffect(() => {
+    if (!proofFile || !address) return;
+    const entry = proofFile.entries.find(
+      (e) => e.address.toLowerCase() === address.toLowerCase()
+    );
+    setUserEntry(entry ?? null);
+  }, [proofFile, address]);
+
+  // ── Read project data ────────────────────────────────────────────────────
+  const { data: project } = useReadContract({
+    address: RWAID_V2_ADDRESS,
+    abi: rwaIdV2Abi,
+    functionName: "projects",
+    args: [BigInt(projectId)],
+    query: { enabled: !!projectId },
+  });
+
+  const { data: minimumFee } = useReadContract({
+    address: RWAID_V2_ADDRESS,
+    abi: rwaIdV2Abi,
+    functionName: "minimumClaimFee",
+  });
+
+  const effectiveFee = project
+    ? project.claimFee > 0n ? project.claimFee : (minimumFee ?? 500000n)
+    : 500000n;
+
+  // ── Check if already claimed ─────────────────────────────────────────────
+  const { data: alreadyClaimed } = useReadContract({
+    address: RWAID_V2_ADDRESS,
+    abi: rwaIdV2Abi,
+    functionName: "claimed",
+    args: [BigInt(projectId), address!],
+    query: { enabled: !!address && !!projectId },
+  });
+
+  // ── USDC reads ───────────────────────────────────────────────────────────
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: usdcAbi,
+    functionName: "balanceOf",
+    args: [address!],
+    query: { enabled: !!address },
+  });
+
+  const { data: usdcAllowance, refetch: refetchAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: usdcAbi,
+    functionName: "allowance",
+    args: [address!, RWAID_V2_ADDRESS],
+    query: { enabled: !!address },
+  });
+
+  const needsApproval = (usdcAllowance ?? 0n) < effectiveFee;
+
+  // ── Approve USDC ─────────────────────────────────────────────────────────
+  const { writeContract: approveUsdc, data: approveTxHash } = useWriteContract();
+  const { isLoading: approving, isSuccess: approveSuccess } = useWaitForTransactionReceipt({
+    hash: approveTxHash,
+  });
+
+  useEffect(() => {
+    if (approveSuccess) refetchAllowance();
+  }, [approveSuccess]);
+
+  // ── Claim ────────────────────────────────────────────────────────────────
+  const { writeContract: claimIdentity, data: claimTxHash } = useWriteContract();
+  const { isLoading: claiming, isSuccess: claimed } = useWaitForTransactionReceipt({
+    hash: claimTxHash,
+  });
+
+  useEffect(() => {
+    if (claimed) setClaimSuccess(true);
+  }, [claimed]);
+
+  const handleApprove = () => {
+    approveUsdc({
+      address: USDC_ADDRESS,
+      abi: usdcAbi,
+      functionName: "approve",
+      args: [RWAID_V2_ADDRESS, effectiveFee],
+    });
+  };
+
+  const handleClaim = () => {
+    if (!userEntry) return;
+    claimIdentity({
+      address: RWAID_V2_ADDRESS,
+      abi: rwaIdV2Abi,
+      functionName: "claim",
+      args: [BigInt(projectId), userEntry.nameHash, userEntry.proof],
+    });
+  };
+
+  const feeDisplay = `$${(Number(effectiveFee) / 1e6).toFixed(2)} USDC`;
+  const balanceDisplay = usdcBalance
+    ? `$${(Number(usdcBalance) / 1e6).toFixed(2)} USDC`
+    : "—";
+  const ensName = userEntry && project
+    ? `${userEntry.name}.${project.slug}.rwa-id.eth`
+    : "";
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  return (
+    <main style={{
+      minHeight: "100vh",
+      background: "#0a0a0a",
+      color: "#fff",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "sans-serif",
+      padding: 24,
+    }}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
+
+        {/* Header */}
+        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>
+          Claim your RWA ID
+        </h1>
+        {project && (
+          <p style={{ color: "#888", marginBottom: 32 }}>
+            {project.slug}.rwa-id.eth
+          </p>
+        )}
+
+        {/* Loading */}
+        {fetching && (
+          <p style={{ color: "#888" }}>Loading allowlist from IPFS…</p>
+        )}
+
+        {/* IPFS error */}
+        {fetchError && (
+          <p style={{ color: "#ef4444" }}>{fetchError}</p>
+        )}
+
+        {/* Connect wallet */}
+        {!fetching && !fetchError && (
+          <div style={{ marginBottom: 24 }}>
+            <ConnectButton />
+          </div>
+        )}
+
+        {/* Wallet connected but not on allowlist */}
+        {isConnected && proofFile && !userEntry && !fetching && (
+          <div style={{
+            padding: 20,
+            background: "#1a0a0a",
+            border: "1px solid #ef4444",
+            borderRadius: 8,
+          }}>
+            <p style={{ color: "#ef4444", fontWeight: 600 }}>
+              This wallet is not on the allowlist.
+            </p>
+            <p style={{ color: "#888", fontSize: 14, marginTop: 4 }}>
+              Make sure you connected the correct wallet ({address?.slice(0,6)}...{address?.slice(-4)}).
+            </p>
+          </div>
+        )}
+
+        {/* Already claimed */}
+        {alreadyClaimed && (
+          <div style={{
+            padding: 20,
+            background: "#0d1f0d",
+            border: "1px solid #22c55e",
+            borderRadius: 8,
+          }}>
+            <p style={{ color: "#22c55e", fontWeight: 600, fontSize: 18 }}>
+              ✅ Already claimed!
+            </p>
+            <p style={{ color: "#888", marginTop: 4 }}>
+              Your RWA ID: <strong style={{ color: "#fff" }}>{ensName}</strong>
+            </p>
+          </div>
+        )}
+
+        {/* Claim success */}
+        {claimSuccess && (
+          <div style={{
+            padding: 24,
+            background: "#0d1f0d",
+            border: "1px solid #22c55e",
+            borderRadius: 8,
+            textAlign: "center",
+          }}>
+            <p style={{ fontSize: 40, marginBottom: 8 }}>🎉</p>
+            <p style={{ color: "#22c55e", fontWeight: 700, fontSize: 20, marginBottom: 8 }}>
+              Identity claimed!
+            </p>
+            <p style={{ color: "#fff", fontSize: 16 }}>{ensName}</p>
+            <p style={{ color: "#888", fontSize: 13, marginTop: 8 }}>
+              Your on-chain identity is live and resolves via ENS.
+            </p>
+          </div>
+        )}
+
+        {/* Claim card — shown when wallet is detected on allowlist */}
+        {isConnected && userEntry && !alreadyClaimed && !claimSuccess && (
+          <div style={{
+            padding: 24,
+            background: "#111",
+            border: "1px solid #333",
+            borderRadius: 8,
+          }}>
+            {/* Identity detected */}
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ color: "#888", fontSize: 13, marginBottom: 4 }}>
+                Identity detected for your wallet
+              </p>
+              <p style={{ fontSize: 22, fontWeight: 700, color: "#22c55e" }}>
+                {ensName}
+              </p>
+            </div>
+
+            {/* Fee info */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "12px 0",
+              borderTop: "1px solid #222",
+              borderBottom: "1px solid #222",
+              marginBottom: 20,
+            }}>
+              <span style={{ color: "#888" }}>Claim fee</span>
+              <span style={{ color: "#fff", fontWeight: 600 }}>{feeDisplay}</span>
+            </div>
+
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 24,
+            }}>
+              <span style={{ color: "#888" }}>Your USDC balance</span>
+              <span style={{ color: "#fff" }}>{balanceDisplay}</span>
+            </div>
+
+            {/* Step 1: Approve */}
+            {needsApproval && (
+              <button
+                onClick={handleApprove}
+                disabled={approving}
+                style={{
+                  width: "100%",
+                  padding: "14px 0",
+                  background: approving ? "#333" : "#3b82f6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  cursor: approving ? "not-allowed" : "pointer",
+                  marginBottom: 10,
+                }}
+              >
+                {approving ? "Approving…" : `Step 1 — Approve ${feeDisplay} USDC`}
+              </button>
+            )}
+
+            {/* Step 2: Claim */}
+            <button
+              onClick={handleClaim}
+              disabled={needsApproval || claiming}
+              style={{
+                width: "100%",
+                padding: "14px 0",
+                background: needsApproval || claiming ? "#333" : "#22c55e",
+                color: needsApproval || claiming ? "#666" : "#000",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: needsApproval || claiming ? "not-allowed" : "pointer",
+              }}
+            >
+              {claiming
+                ? "Claiming…"
+                : needsApproval
+                ? "Step 2 — Claim Identity (approve first)"
+                : "Claim Identity"}
+            </button>
+
+            {/* Transfer info */}
+            {project && (
+              <p style={{ color: "#555", fontSize: 12, textAlign: "center", marginTop: 12 }}>
+                {project.transferable
+                  ? "This identity is transferable"
+                  : "This identity is soulbound (non-transferable)"}
+              </p>
+            )}
+          </div>
+        )}
+
+      </div>
+    </main>
+  );
+}
+```
+
+---
+
+## Step 4 — Update app/lib/rwaIdAbi.ts
+
+Add the `claimed` read to the ABI if not already present (it reads whether an
+address has already claimed for a given project):
+
+```ts
+{
+  name: "claimed",
+  type: "function",
+  stateMutability: "view",
+  inputs: [
+    { name: "projectId", type: "uint256" },
+    { name: "claimer",   type: "address" },
+  ],
+  outputs: [{ type: "bool" }],
+},
+```
+
+---
+
+## Step 5 — Remove the old /claim page
+
+Delete `app/claim/page.tsx` (the file-upload version from the previous update).
+The new route `app/claim/[projectId]/[cid]/page.tsx` fully replaces it.
+
+Also remove the "Claim Identity" nav link that pointed to `/claim` and replace
+it with nothing — users reach the claim page only via the shareable URL.
+The nav should only show **Platform Console** for the platform operator.
+
+---
+
+## Step 6 — Add PINATA_JWT to Replit Secrets
+
+In your Replit project:
+1. Open **Secrets** (the lock icon in the left sidebar)
+2. Add key: `PINATA_JWT`
+3. Value: your Pinata JWT token (same as in your local .env)
+
+This is used server-side by the `/api/upload-proofs` route and is never
+exposed to the browser.
+
+---
+
+## Summary of Changes
+
+| File | Change |
+|------|--------|
+| `app/api/upload-proofs/route.ts` | **NEW** — server route that pins JSON to IPFS via Pinata |
+| `app/page.tsx` | After tx confirms: auto-upload proofs to IPFS, show copyable claim URL, remove file download |
+| `app/claim/[projectId]/[cid]/page.tsx` | **NEW** — dynamic claim page, fetches proofs from IPFS, auto-detects wallet |
+| `app/claim/page.tsx` | **DELETE** — replaced by the dynamic route above |
+| `app/layout.tsx` | Remove "Claim Identity" nav link (users arrive via URL only) |
+| Replit Secrets | Add `PINATA_JWT` |
+
+---
+
+## How it works end-to-end
+
+```
+Platform Console                    User
+────────────────                    ────
+Upload CSV
+  ↓ generate Merkle tree
+  ↓ set root on-chain
+  ↓ upload proofs JSON to IPFS
+  ↓ show claim URL:
+    /claim/1/QmXxxx...
+                        ──────────→ User opens URL
+                                    Proofs fetched from IPFS
+                                    Wallet connects
+                                    Entry auto-detected ✅
+                                    Approve USDC
+                                    Claim
+                                    alice.securitize.rwa-id.eth 🎉
+```

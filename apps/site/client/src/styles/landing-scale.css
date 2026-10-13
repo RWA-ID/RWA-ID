@@ -1,0 +1,283 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Landing scale layer.
+
+   dashboard-base.css and dashboard-landing.css are the dashboard's own files,
+   copied in unmodified apart from the scoping note at the top of the base file.
+   They own colour, type and every component. This file owns only scale and
+   rhythm — the departures that make the marketing page read at landing-page
+   size rather than app size, plus the handful of components the dashboard has
+   no equivalent of (FAQ, feature grid, scope columns, fee table, contact form).
+
+   Every colour below resolves to a token from dashboard-base.css. No new
+   palette is introduced here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Hero: full-bleed, no bordered panel ────────────────────────────────── */
+.mk-hero { grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; padding: 26px 40px 64px }
+.mk-hero .hero-card { background: transparent; border-radius: 0; padding: 0; justify-content: center }
+.mk-hero .hero-spacer { display: none }
+.mk-h1 {
+  font-size: clamp(54px, 6.9vw, 96px);
+  line-height: .94;
+  letter-spacing: -.042em;
+  margin: 26px 0 !important;
+}
+.mk-hero .hero-lede { max-width: 520px; margin-bottom: 32px }
+.mk-textlink {
+  display: inline-block; margin-top: 26px;
+  font: 400 13.5px/1 var(--f-sans);
+  color: var(--muted);
+  text-decoration: underline; text-underline-offset: 4px;
+  text-decoration-color: var(--border-strong);
+}
+.mk-textlink:hover { color: var(--ink); text-decoration-color: var(--muted) }
+
+/* ── Section headings, one step up from the dashboard's .display-2 ──────── */
+.mk-h2 { font-size: clamp(38px, 4.2vw, 64px); line-height: .98; letter-spacing: -.038em }
+.mk-section { padding-top: 78px }
+.mk-section > .l-section-head { padding-top: 52px }
+.mk-head-center {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  align-items: start;
+}
+.mk-head-center .l-section-lede { margin: 18px auto 0 }
+
+/* ── Trust strip ────────────────────────────────────────────────────────── */
+/* Five proof points. Pills read as chrome at this width, so each one gets a
+   card: tinted icon well, an optional figure, the claim, and one line of
+   substance under it. */
+.mk-trust { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding-top: 26px }
+.mk-stat {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.mk-stat:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: 0 14px 28px -18px rgba(14, 15, 17, .38);
+}
+.mk-stat-icon {
+  width: 52px; height: 52px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.mk-stat.is-accent .mk-stat-icon { background: var(--accent-soft); color: var(--accent) }
+.mk-stat.is-good   .mk-stat-icon { background: var(--good-bg);     color: var(--good) }
+.mk-stat-body { min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.mk-stat-num { font: 600 26px/1.05 var(--f-sans); letter-spacing: -.035em; color: var(--ink) }
+.mk-stat-title {
+  margin: 0;
+  font: 500 15px/1.3 var(--f-sans);
+  letter-spacing: -.02em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+/* Inline rather than a flex child so the dot sits with the first word and the
+   title still wraps normally under it. */
+.mk-stat-dot {
+  display: inline-block; vertical-align: middle;
+  width: 6px; height: 6px; margin: -2px 7px 0 0;
+  border-radius: 50%;
+  background: var(--good);
+  animation: pulseDot 2.6s ease-in-out infinite;
+}
+.mk-stat-note { margin: 2px 0 0; font: 400 13px/1.5 var(--f-sans); color: var(--muted); text-wrap: pretty }
+
+/* ── Revenue split: the fee table on the dark money card ────────────────── */
+.mk-revenue {
+  display: grid; grid-template-columns: 1fr 1.15fr; gap: 34px; align-items: center;
+  border: 0; background: transparent; padding: 0;
+}
+/* Colour comes from the system's own .light modifiers on .l-card-dark. */
+.mk-revenue-lede { margin: 14px 0 0 }
+.mk-revenue-note { margin-top: 16px }
+.mk-table { width: 100%; border-collapse: collapse; font: 400 13px/1 var(--f-sans) }
+.mk-table th {
+  text-align: right; padding: 0 0 12px;
+  font: 400 10px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(244,244,242,.42);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.mk-table th:first-child, .mk-table td:first-child { text-align: left }
+.mk-table td { padding: 13px 0; text-align: right; color: rgba(244,244,242,.72); border-bottom: 1px solid rgba(255,255,255,.06) }
+.mk-table tr:last-child td { border-bottom: 0 }
+.mk-table td.good { color: var(--green); font-weight: 500 }
+.mk-table td.mute { color: rgba(244,244,242,.42) }
+
+/* ── Feature tiles: nine cards, sized to sit between .l-card and a list ─── */
+.mk-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 38px }
+.mk-feature {
+  padding: 28px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.mk-feature-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px }
+.mk-feature-head svg { color: var(--accent); flex: none }
+.mk-feature-title { font: 500 17px/1.3 var(--f-sans); letter-spacing: -.02em; color: var(--ink) }
+.mk-feature p { font: 400 14.5px/1.65 var(--f-sans); color: var(--muted); margin: 0; text-wrap: pretty }
+
+/* ── FAQ: native <details>, no JS, no library ───────────────────────────── */
+.mk-faq { max-width: 860px; margin: 38px auto 0; display: flex; flex-direction: column; gap: 10px }
+.mk-faq details {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.mk-faq details[open] { border-color: var(--border-strong) }
+.mk-faq summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  font: 500 16px/1.35 var(--f-sans);
+  letter-spacing: -.015em;
+  color: var(--ink);
+}
+.mk-faq summary::-webkit-details-marker { display: none }
+.mk-faq summary:hover { background: var(--surface-2) }
+.mk-faq-sign { position: relative; width: 13px; height: 13px; flex: none; color: var(--faint) }
+.mk-faq-sign::before, .mk-faq-sign::after {
+  content: ''; position: absolute; background: currentColor; border-radius: 1px;
+  transition: transform .2s ease, opacity .2s ease;
+}
+.mk-faq-sign::before { inset: 6px 0 6px 0; height: 1.5px }
+.mk-faq-sign::after  { inset: 0 6px 0 6px; width: 1.5px }
+.mk-faq details[open] .mk-faq-sign::after { transform: scaleY(0); opacity: 0 }
+.mk-faq-body { padding: 0 24px 22px; max-width: 68ch }
+.mk-faq-body p { font: 400 14px/1.7 var(--f-sans); color: var(--muted); margin: 0 0 10px; text-wrap: pretty }
+.mk-faq-body p:last-child { margin-bottom: 0 }
+.mk-faq-body pre {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: var(--shell);
+  color: #E4E4E1;
+  font: 400 12.5px/1.6 var(--f-mono);
+  overflow-x: auto;
+}
+
+/* ── Two-panel rows (users, cross-chain) ────────────────────────────────── */
+.mk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 38px }
+.mk-panel { padding: 26px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface) }
+.mk-panel-title { font: 500 17px/1.3 var(--f-sans); letter-spacing: -.02em; color: var(--ink); margin: 0 0 18px }
+.mk-panel-center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px }
+.mk-mark-lg { width: 64px; height: 64px; border-radius: 18px; font-size: 32px }
+
+/* Chain/wallet panels: the tile rows never fill their card, so left-aligning
+   them left a ragged gap under a centred section heading. Centre both. */
+.mk-panel-logos { display: flex; flex-direction: column; align-items: center }
+.mk-panel-logos .mk-panel-title { text-align: center }
+.mk-panel-logos .logo-row { justify-content: center }
+
+/* The dashboard sizes these tiles for a sidebar; on a landing page at this
+   width they read as afterthoughts. One step up, still on one row at 1520px. */
+.mk-panel-logos .logo-row { gap: 10px }
+.mk-panel-logos .logo-tile { width: 100px; padding: 16px 8px 14px; gap: 11px; border-radius: 20px }
+.mk-panel-logos .logo-tile-mark { width: 58px; height: 58px; border-radius: 17px }
+.mk-panel-logos .logo-tile-label { font-size: 12.5px }
+.logo-tile-mark img { width: 36px; height: 36px; max-width: 100%; max-height: 100%; object-fit: contain }
+.mk-ccip {
+  margin-top: 14px; display: flex; align-items: center; gap: 18px;
+  padding: 18px 22px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface);
+}
+.mk-ccip img { width: 148px; border-radius: 8px; flex: none }
+.mk-ccip p { margin: 0; font: 400 13.5px/1.6 var(--f-sans); color: var(--muted) }
+
+/* ── Does / does not ────────────────────────────────────────────────────── */
+.mk-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 38px }
+.mk-scope-col { padding: 26px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface) }
+.mk-scope-col.is-not { background: transparent }
+.mk-scope ul { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.mk-scope li { display: flex; align-items: flex-start; gap: 11px; font: 400 14px/1.5 var(--f-sans); color: var(--ink) }
+.mk-scope .is-not li { color: var(--mute-3) }
+.mk-scope li svg { flex: none; margin-top: 2px; color: var(--good) }
+.mk-scope-dash { flex: none; width: 11px; height: 1.5px; margin-top: 10px; border-radius: 1px; background: var(--border-strong) }
+
+/* ── Contact form ───────────────────────────────────────────────────────── */
+.mk-form { max-width: 720px; margin: 38px auto 0; padding: 30px; border: 1px solid var(--hairline); border-radius: 18px; background: var(--surface) }
+.mk-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px }
+.mk-form-grid .full { grid-column: 1 / -1 }
+.req { color: var(--danger) }
+/* The shell is built around <input>; give textarea and select the same box. */
+.input-shell textarea, .input-shell select {
+  flex: 1; min-width: 0;
+  padding: 12px 14px;
+  border: 0; outline: 0;
+  background: transparent;
+  font: 400 14px/1.55 var(--f-sans);
+  color: var(--ink);
+  resize: vertical;
+}
+.input-shell select { font-family: var(--f-sans); cursor: pointer; appearance: none }
+.input-shell.is-select::after {
+  content: ''; margin-right: 14px; flex: none;
+  width: 7px; height: 7px;
+  border-right: 1.5px solid var(--mute-3); border-bottom: 1.5px solid var(--mute-3);
+  transform: translateY(-2px) rotate(45deg);
+}
+.input-shell textarea::placeholder { color: var(--faint) }
+/* The shell's input is mono because the dashboard types addresses into it.
+   A contact form takes prose, so this one takes the sans face. */
+.mk-form .input-shell input { font: 400 14px/1 var(--f-sans) }
+.mk-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 22px; flex-wrap: wrap }
+.mk-form-note { font: 400 11.5px/1.5 var(--f-mono); color: var(--mute-3) }
+.mk-form-sent { text-align: center; padding: 34px 0; display: flex; flex-direction: column; align-items: center; gap: 14px }
+.mk-form-sent-mark {
+  width: 54px; height: 54px; border-radius: 50%; flex: none;
+  background: var(--good-bg); color: var(--good);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Contract bar ───────────────────────────────────────────────────────── */
+.mk-contract {
+  margin-top: 78px;
+  border-top: 1px solid var(--hairline-2);
+  padding: 26px 40px;
+  display: flex; align-items: center; justify-content: center; gap: 34px; flex-wrap: wrap;
+  font: 400 12.5px/1 var(--f-sans); color: var(--mute-3);
+}
+.mk-contract-net { display: flex; align-items: center; gap: 9px; color: var(--ink); font-weight: 500 }
+.mk-contract-net img { width: 17px; height: 17px }
+.mk-contract-addr {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 13px; border-radius: 9px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  font: 400 12px/1 var(--f-mono); color: var(--ink-2);
+}
+.mk-contract-addr:hover { background: var(--surface-2) }
+.mk-contract-addr.is-copied { color: var(--good); border-color: var(--good-line) }
+.mk-contract a:hover { color: var(--ink) }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 1320px) {
+  .mk-trust { grid-template-columns: repeat(3, 1fr) }
+}
+@media (max-width: 1100px) {
+  .mk-features { grid-template-columns: 1fr 1fr }
+  .l-cards { grid-template-columns: 1fr }
+}
+@media (max-width: 900px) {
+  .mk-hero, .l-section-head, .mk-two, .mk-scope, .mk-form-grid, .mk-revenue { grid-template-columns: 1fr }
+  .mk-trust { grid-template-columns: repeat(2, 1fr) }
+  .mk-features { grid-template-columns: 1fr }
+  .mk-hero { padding: 20px 20px 48px; gap: 36px }
+  .mk-section { padding-top: 54px }
+  .l-footer-cols { grid-template-columns: 1fr 1fr }
+  .l-footer-top { grid-template-columns: 1fr }
+  .mk-ccip { flex-direction: column; align-items: flex-start }
+}
+@media (max-width: 720px) {
+  .mk-trust { grid-template-columns: 1fr; gap: 10px }
+  .mk-stat { padding: 18px }
+  .mk-panel-logos .logo-tile { width: 84px; padding: 13px 6px 11px; border-radius: 16px }
+  .mk-panel-logos .logo-tile-mark { width: 48px; height: 48px; border-radius: 14px }
+  .logo-tile-mark img { width: 30px; height: 30px }
+}

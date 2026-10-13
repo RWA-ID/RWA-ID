@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  /console and /claim used to be listed here. Neither is a page any more — both
+  bounce to dashboard.rwa-id.com, so listing them asks Google to index a
+  redirect. They keep their share cards (server/og.ts) for links already in the
+  wild, but they stay out of the sitemap.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://rwa-id.com/</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://rwa-id.com/privacy</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

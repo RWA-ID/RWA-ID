@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!--
+  Source for the share cards in client/public/og/. Rendered at 1200×630 by
+  scripts/og/render.sh — pick a variant with the hash, e.g. card.html#privacy.
+  Colours are the landing page's own tokens; nothing new is introduced here.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box }
+  :root {
+    --ink: #0E0F11;
+    --muted: #4D5158;
+    --mute-3: #8A8D93;
+    --page: #F5F5F3;
+    --surface: #FFFFFF;
+    --hairline: #E5E5E1;
+    --accent: #1D4ED8;
+    --accent-deep: #003E9E;
+    --good: #0F7A52;
+    --good-bg: #E7F4EE;
+    --green: #4ADE80;
+    --f-sans: 'Geist', -apple-system, system-ui, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+  }
+  body {
+    width: 1200px; height: 630px;
+    background: var(--page);
+    font-family: var(--f-sans);
+    color: var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 452px;
+    overflow: hidden;
+  }
+
+  /* ── Left: the message ─────────────────────────────────────────────── */
+  .left { padding: 58px 44px 52px 64px; display: flex; flex-direction: column }
+  .brand { display: flex; align-items: center; gap: 12px }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--ink); color: var(--page);
+    display: flex; align-items: center; justify-content: center;
+    font: 600 17px/1 var(--f-mono);
+  }
+  .brand-word { font: 600 29px/1 var(--f-sans); letter-spacing: -.03em }
+
+  .eyebrow {
+    margin-top: 46px;
+    display: inline-flex; align-self: flex-start; align-items: center; gap: 9px;
+    padding: 9px 15px; border-radius: 999px;
+    background: #E4E4DF;
+    font: 400 11.5px/1 var(--f-mono); letter-spacing: .15em; color: var(--muted);
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good) }
+
+  h1 { margin-top: 26px; font-size: 62px; line-height: .96; letter-spacing: -.042em; font-weight: 600 }
+  h1 .dim { color: #9EA1A6 }
+  .sub {
+    margin-top: 22px; max-width: 30ch;
+    font-size: 19px; line-height: 1.55; color: var(--muted);
+  }
+
+  .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+  .chip {
+    padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--hairline); background: var(--surface);
+    font-size: 13px; color: var(--muted);
+  }
+  .chip.is-good { background: var(--good-bg); border-color: #C3E4D4; color: var(--good) }
+  .chip .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 8px; vertical-align: middle }
+  .url { margin-left: auto; font: 400 14px/1 var(--f-mono); color: var(--mute-3) }
+
+  /* ── Right: the identity panel ─────────────────────────────────────── */
+  .right { padding: 24px 24px 24px 0 }
+  .panel {
+    width: 100%; height: 100%;
+    border-radius: 26px;
+    background: radial-gradient(120% 100% at 20% 0%, #1150C4 0%, var(--accent-deep) 62%, #002E77 100%);
+    padding: 42px 38px;
+    display: flex; flex-direction: column; justify-content: center; gap: 16px;
+  }
+  .card {
+    border-radius: 20px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.18);
+    padding: 20px;
+    backdrop-filter: blur(2px);
+  }
+  .id-row { display: flex; align-items: center; gap: 14px }
+  .id-avatar { width: 52px; height: 52px; border-radius: 50%; flex: none }
+  .id-text { min-width: 0; display: flex; flex-direction: column; gap: 5px }
+  .id-name { font: 600 21px/1 var(--f-sans); letter-spacing: -.028em; color: #fff; white-space: nowrap }
+  .id-addr { font: 400 12.5px/1 var(--f-mono); color: rgba(255,255,255,.6) }
+  .id-check {
+    margin-left: auto; flex: none;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(74,222,128,.2); color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .rail { display: flex; align-items: center; justify-content: space-between; padding: 0 4px }
+  .rail span { font: 400 10.5px/1 var(--f-mono); letter-spacing: .16em; color: rgba(255,255,255,.5) }
+
+  .chains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+  .chain {
+    display: flex; align-items: center; gap: 9px;
+    padding: 10px 11px; border-radius: 13px;
+    background: rgba(255,255,255,.09);
+    border: 1px solid rgba(255,255,255,.11);
+  }
+  .chain img { width: 20px; height: 20px; border-radius: 5px; background: #fff; padding: 2px; box-sizing: content-box }
+  .chain b { font: 500 12.5px/1 var(--f-sans); letter-spacing: -.01em; color: rgba(255,255,255,.92) }
+
+  .stamp {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font: 400 10.5px/1 var(--f-mono); letter-spacing: .16em; color: rgba(255,255,255,.45);
+  }
+  .stamp i { width: 6px; height: 6px; border-radius: 50%; background: var(--green) }
+
+  /* ── Variants ──────────────────────────────────────────────────────── */
+  body:not(.v-home) .home-only { display: none }
+  body:not(.v-privacy) .privacy-only { display: none }
+  body:not(.v-dashboard) .dashboard-only { display: none }
+</style>
+</head>
+<body class="v-home">
+
+  <div class="left">
+    <div class="brand">
+      <span class="brand-mark">R</span>
+      <span class="brand-word">RWA&middot;ID</span>
+    </div>
+
+    <div class="eyebrow home-only"><span class="dot"></span>LIVE ON ETHEREUM MAINNET</div>
+    <div class="eyebrow privacy-only">LEGAL &middot; PRIVACY</div>
+    <div class="eyebrow dashboard-only">PLATFORM DASHBOARD</div>
+
+    <h1 class="home-only">Identity for<br /><span class="dim">real-world asset</span><br />platforms.</h1>
+    <h1 class="privacy-only">Privacy<br /><span class="dim">policy.</span></h1>
+    <h1 class="dashboard-only">Run your<br /><span class="dim">namespace.</span></h1>
+
+    <p class="sub home-only">Verifiable, ENS-compatible onchain identities for your clients — non-custodial, resolvable on any chain, auditable by anyone.</p>
+    <p class="sub privacy-only">Infrastructure only. RWA-ID collects no personal data, performs no KYC, and never custodies funds or assets.</p>
+    <p class="sub dashboard-only">Allowlists, claim fees, treasury and revocation — every control onchain, with no backend to run.</p>
+
+    <div class="foot">
+      <span class="chip is-good"><span class="dot"></span>Ethereum Mainnet</span>
+      <span class="chip">ENS-compatible</span>
+      <span class="chip">Non-custodial</span>
+      <span class="url">rwa-id.com</span>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="panel">
+      <div class="card">
+        <div class="id-row">
+          <img class="id-avatar" src="../../client/public/brand/avatar.svg" alt="" />
+          <span class="id-text">
+            <span class="id-name">joe.yourfirm.rwa-id.eth</span>
+            <span class="id-addr">0x7F3a…E6f7</span>
+          </span>
+          <span class="id-check">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="rail"><span>RESOLVES ON</span><span>6 CHAINS</span></div>
+
+      <div class="chains">
+        <div class="chain"><img src="../../client/public/brand/chains/ethereum.svg" alt="" /><b>Ethereum</b></div>
+        <div class="chain"><img src="../../client/public/brand/chains/base.svg" alt="" /><b>Base</b></div>
+        <div class="chain"><img src="../../client/public/brand/chains/arbitrum-one.svg" alt="" /><b>Arbitrum</b></div>
+        <div class="chain"><img src="../../client/public/brand/chains/optimism.svg" alt="" /><b>Optimism</b></div>
+        <div class="chain"><img src="../../client/public/brand/chains/polygon.svg" alt="" /><b>Polygon</b></div>
+        <div class="chain"><img src="../../client/public/brand/chains/linea.svg" alt="" /><b>Linea</b></div>
+      </div>
+
+      <div class="stamp"><i></i>SOULBOUND &middot; ENSIP-10 WILDCARD</div>
+    </div>
+  </div>
+
+<script>
+  const variant = (location.hash || '#home').slice(1);
+  document.body.className = 'v-' + variant;
+</script>
+</body>
+</html>
