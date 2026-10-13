@@ -24,6 +24,11 @@ describe("Reserved namespaces config", function () {
     for (const f of fs.readdirSync(LOGOS)) expect(used.has(f), `${f} is unreferenced`).to.equal(true);
   });
 
+  it("matches the copy the site renders (run scripts/export-reserved.js)", function () {
+    const { build, OUT } = require("../scripts/export-reserved");
+    expect(JSON.parse(fs.readFileSync(OUT, "utf8"))).to.deep.equal(build());
+  });
+
   it("carries the non-affiliation disclaimer", function () {
     expect(DISCLAIMER).to.include("does not mean the company is affiliated");
     expect(DISCLAIMER).to.include("trademarks of their respective owners");

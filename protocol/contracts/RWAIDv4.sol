@@ -813,8 +813,8 @@ contract RWAIDv4 is ERC721, Ownable2Step, ReentrancyGuard {
                 '{"name":"RWA ID",',
                 '"description":"ENS-native identity for tokenized real-world asset platforms. ',
                 'Each token is a claimed subdomain of rwa-id.eth, issued by a verified project.",',
-                '"image":"', _svgURI("rwa-id.eth"), '",',
-                '"external_link":"https://rwa-id.eth.link"}'
+                '"image":"', _svgURI("rwa-id", ".eth"), '",',
+                '"external_link":"https://rwa-id.com"}'
             )
         );
     }
@@ -830,7 +830,7 @@ contract RWAIDv4 is ERC721, Ownable2Step, ReentrancyGuard {
         Project memory project = projects[meta.projectId];
         string memory name_ = string.concat(meta.label, ".", project.slug, ".rwa-id.eth");
         string memory image = projectImage[meta.projectId];
-        if (bytes(image).length == 0) image = _svgURI(name_);
+        if (bytes(image).length == 0) image = _svgURI(meta.label, string.concat(".", project.slug, ".rwa-id.eth"));
 
         return _jsonURI(
             string.concat(
@@ -838,7 +838,7 @@ contract RWAIDv4 is ERC721, Ownable2Step, ReentrancyGuard {
                 '"description":"', name_, ' is an ENS identity issued by ', project.slug,
                 ' on RWA ID. It resolves onchain to the wallet that holds this token.",',
                 '"image":"', image, '",',
-                '"external_url":"https://rwa-id.eth.link",',
+                '"external_url":"https://rwa-id.com",',
                 '"attributes":[',
                     '{"trait_type":"Namespace","value":"', project.slug, '.rwa-id.eth"},',
                     '{"trait_type":"Label","value":"', meta.label, '"},',
@@ -875,37 +875,40 @@ contract RWAIDv4 is ERC721, Ownable2Step, ReentrancyGuard {
      *      distinguishes them. Labels are restricted to printable ASCII by
      *      _validateLabel, so nothing here can break out of the SVG or the JSON.
      */
-    function _svgURI(string memory caption) internal pure returns (string memory) {
+    /**
+     * The default artwork: the RWA ID identity card. Ink field, the lime 2c
+     * "cut-corner tag" mark, lime/orange rings, the label in white over the
+     * namespace in lime, and a lime bar along the bottom edge. Two text lines,
+     * each sized to its own length, so a 63-character label still fits.
+     */
+    function _svgURI(string memory label, string memory suffix) internal pure returns (string memory) {
         string memory svg = string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">',
-            '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">',
-            '<stop offset="0" stop-color="#15171B"/><stop offset="1" stop-color="#0B0C0F"/>',
-            '</linearGradient></defs>',
-            '<rect width="800" height="800" fill="url(#g)"/>',
-            '<rect x="40" y="40" width="720" height="720" rx="36" fill="none" ',
-            'stroke="#F4F4F2" stroke-opacity="0.12"/>',
-            '<rect x="286" y="196" width="228" height="228" rx="56" fill="#1D4ED8"/>',
-            '<text x="400" y="352" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" ',
-            'font-size="132" font-weight="600" fill="#F4F4F2" text-anchor="middle">R</text>',
-            '<text x="400" y="536" font-family="ui-sans-serif,system-ui,Helvetica,Arial" ',
-            'font-size="', _captionSize(caption), '" font-weight="500" fill="#F4F4F2" ',
-            'text-anchor="middle">', caption, '</text>',
-            '<text x="400" y="590" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" ',
-            'font-size="22" fill="#F4F4F2" fill-opacity="0.45" letter-spacing="6" ',
-            'text-anchor="middle">RWA&#183;ID</text>',
-            '</svg>'
+            '<rect width="800" height="800" fill="#0B0C0A"/>',
+            '<g fill="none"><circle cx="800" cy="0" r="300" stroke="#CCFF00" stroke-opacity=".38"/>',
+            '<circle cx="800" cy="0" r="200" stroke="#FF5A1F" stroke-opacity=".45"/></g>',
+            '<clipPath id="c"><path d="M64 64h74l46 44v66H64z"/></clipPath>',
+            '<rect x="64" y="64" width="120" height="110" rx="29" fill="#CCFF00" clip-path="url(#c)"/>',
+            '<rect x="148" y="64" width="36" height="36" rx="10" fill="#FF5A1F"/>',
+            '<circle cx="99" cy="99" r="13" fill="#0B0C0A"/><rect x="87" y="132" width="50" height="10" rx="3" fill="#0B0C0A"/>',
+            '<g font-family="Archivo,Helvetica,Arial,sans-serif" font-weight="800" letter-spacing="-1">',
+            '<text x="64" y="560" font-size="', _fit(bytes(label).length), '" fill="#FFF">', label, '</text>',
+            '<text x="64" y="640" font-size="', _fit(bytes(suffix).length + 8), '" fill="#CCFF00">', suffix, '</text></g>',
+            '<text x="64" y="712" font-family="monospace" font-size="20" letter-spacing="3" fill="#A3A69C">',
+            'RWA ID &#183; ROBINHOOD CHAIN</text>',
+            '<rect y="776" width="800" height="24" fill="#CCFF00"/></svg>'
         );
 
         return string.concat("data:image/svg+xml;base64,", Base64.encode(bytes(svg)));
     }
 
-    /// @dev Step the caption down so long names stay inside the card.
-    function _captionSize(string memory s) internal pure returns (string memory) {
-        uint256 len = bytes(s).length;
-        if (len <= 22) return "44";
-        if (len <= 30) return "34";
-        if (len <= 42) return "26";
-        return "20";
+    /// Font size that keeps `len` bold characters inside the card's 672px text width.
+    function _fit(uint256 len) internal pure returns (string memory) {
+        if (len <= 12) return "72";
+        if (len <= 20) return "52";
+        if (len <= 32) return "34";
+        if (len <= 44) return "26";
+        return "18";
     }
 
     // =============================================================

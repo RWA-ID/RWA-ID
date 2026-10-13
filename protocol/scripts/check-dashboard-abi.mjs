@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'fs'
 
-const CONTRACT = process.env.CONTRACT || 'RWAIDv3'
+const CONTRACT = process.env.CONTRACT || 'RWAIDv4'
 const artifact = `artifacts/contracts/${CONTRACT}.sol/${CONTRACT}.json`
 const dashboard = '../apps/dashboard/src/lib/contracts.js'
 
