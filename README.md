@@ -303,13 +303,22 @@ have their own `package.json` and are installed separately — see
 ### Run Tests
 
 ```bash
-npx hardhat test        # 112 passing
+npx hardhat test        # 193 passing
 ```
 
 | Suite | Covers |
 |---|---|
 | `test/RWAIDv2.test.js` (68) | Registry logic v3 inherits unchanged — projects, reservations, allowlists, fee splitting, soulbound enforcement, revocation, ownership, CCIP-Read resolver |
 | `test/RWAIDv3.test.js` (44) | v3's own surface — label validation, claiming by label, `tokenURI`, `contractURI`, the `baseURI` escape hatch, ERC-4906 |
+| `test/RWAIDv4.test.js` (61) | v4 — the enforced fee floor, sponsor pools, `claimFor`, platform artwork, labels checked against viem's ENS normalizer on 1,000 random inputs, v3 event/ABI compatibility |
+| `test/RWAIDPlatformUnlock.test.js` (20) | The platform token unlock — funding, Safe-only activation, usage × time release, cancel/sweep, and the fixed-supply token |
+
+v4 is also rehearsed end to end against live Robinhood Chain state (real USDG,
+the real Safe and deployer), on a local fork that sends nothing:
+
+```bash
+FORK_ROBINHOOD=1 npx hardhat run scripts/fork-check-v4.js
+```
 
 The v3 suite is written around the failure modes that motivated v3. It asserts that
 uppercase labels are rejected rather than folded (folding would invalidate every
@@ -360,13 +369,20 @@ deploys on its own; there is no shared workspace.
 ```
 protocol/                        — Registry contracts, tests, deploy scripts (Hardhat)
   contracts/
-    RWAIDv3.sol                  — Current registry (adds on-chain token metadata)
+    RWAIDv4.sol                  — Robinhood Chain registry (USDG, fee floor, sponsorship, claimFor, platform art)
+    RWAIDPlatformUnlock.sol      — Platform token buckets: earned by claims, released over time
+    RWAIDToken.sol               — Fixed-supply protocol token (no owner, no mint)
+    RWAIDv3.sol                  — Mainnet registry (adds on-chain token metadata)
     RWAIDv2.sol                  — Superseded registry (no tokenURI)
     RwaIdWildcardResolverV2.sol  — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
     mocks/MockUSDC.sol           — Test USDC (Sepolia only)
     RwaIdRegistry.sol            — v1 contract (legacy)
     RwaIdWildcardResolver.sol    — v1 resolver (legacy)
+  config/
+    reserved-namespaces.js       — The 32 slugs reserved on v4 (one token bucket each)
   scripts/
+    deploy-v4.js                 — Deploy RWAIDv4 to Robinhood Chain and hand it to the Safe
+    fork-check-v4.js             — Rehearse the v4 launch on a fork of Robinhood Chain
     deploy-v3.js                 — Deploy RWAIDv3
     deploy-mainnet.js            — Deploy v2 (historical)
     deploy-sepolia.js            — Deploy to Sepolia testnet
@@ -379,6 +395,8 @@ protocol/                        — Registry contracts, tests, deploy scripts (
   test/
     RWAIDv2.test.js              — 68 tests: inherited registry logic
     RWAIDv3.test.js              — 44 tests: metadata, label rules, escape hatches
+    RWAIDv4.test.js              — 61 tests: fee floor, sponsorship, claimFor, artwork, ENS labels
+    RWAIDPlatformUnlock.test.js  — 20 tests: usage-earned, time-capped token release
 apps/
   dashboard/                     — Platform console, dashboard.rwa-id.com (Vite, Cloudflare Pages)
   site/                          — Marketing site, rwa-id.com
