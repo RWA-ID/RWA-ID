@@ -1,239 +1,236 @@
-import { useEffect, useState } from 'react'
-import { useAccount, useDisconnect, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useEffect, useMemo, useState } from 'react'
+import { useAccount, useDisconnect, useReadContract } from 'wagmi'
+import { decodeEventLog } from 'viem'
 import { modal } from '../lib/wagmi'
-import { RWAID_ADDRESS, RWAID_ABI, USDC_ADDRESS, USDC_ABI } from '../lib/contracts'
+import { RWAID_ADDRESS, RWAID_ABI, USDG_ADDRESS, ERC20_ABI, IDENTITY_CLAIMED } from '../lib/contracts'
+import { ROBINHOOD_CHAIN_ID, explorerTx, explorerToken } from '../lib/chain'
 import { parseProject } from '../lib/useProjects'
-import { fetchProofSet } from '../lib/allowlistStore'
-import { effectiveFee, errorText, shortAddress, usd } from '../lib/format'
-import IdentityCard from './IdentityCard'
-import { ArrowRight, Check, Close, External, Pause, Warning } from './icons'
+import { fetchProofSet, REGISTRY_VERSION } from '../lib/allowlistStore'
+import { errorText, shortAddress, usd } from '../lib/format'
+import { linkTo, navigate } from '../lib/nav'
+import { useTx } from './TxDrawer'
+import { Lockup, RwaMark } from './Brand'
 
-/* ── Shell ─────────────────────────────────────────────────────────────── */
+const read = (functionName, args, enabled = true) => ({
+  address: RWAID_ADDRESS, abi: RWAID_ABI, functionName, args, chainId: ROBINHOOD_CHAIN_ID, query: { enabled },
+})
 
-function Shell({ slug, children, onDisconnect, address }) {
+function Shell({ slug, address, onDisconnect, children }) {
   return (
-    <div className="claim-page">
-      <header className="claim-bar">
-        <span className="brand-mark" style={{ width: 20, height: 20, borderRadius: 5, fontSize: 10 }}>R</span>
-        <span style={{ font: '500 13px/1 var(--f-sans)' }}>RWA·ID</span>
-        {slug && <span className="claim-bar-ns">{slug}.rwa-id.eth</span>}
-        {address && (
-          <button className="claim-bar-btn" onClick={onDisconnect}>
-            {shortAddress(address)} · Disconnect
-          </button>
-        )}
+    <div className="claim">
+      <header className="claim-head">
+        <Lockup href="/" onClick={linkTo} size={26} word={16} />
+        {slug && <span className="ns">{slug}.rwa-id.eth</span>}
+        {address && <button className="btn" onClick={onDisconnect}>{shortAddress(address)} · Disconnect</button>}
       </header>
-      <main className="claim-body">{children}</main>
+      <main className="claim-main">{children}</main>
       <footer className="claim-foot">
-        <span>Names resolve through ENS on Ethereum mainnet.</span>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
+        <span>Names resolve through ENS. Registry on Robinhood Chain.</span>
+        <a href="/privacy" onClick={linkTo}>Privacy</a>
+        <a href="/terms" onClick={linkTo}>Terms</a>
       </footer>
     </div>
   )
 }
 
-/** Centred single-message state — loading, errors, dead ends. */
-function Notice({ tone = 'neutral', icon, title, children }) {
+function Notice({ icon, tone, title, children, action }) {
   return (
     <div className="claim-notice">
-      <span className={`claim-mark ${tone}`}>{icon}</span>
-      <h1 className="claim-notice-title">{title}</h1>
-      <div className="claim-notice-body">{children}</div>
+      <span className={`sq ${tone || ''}`}>{icon}</span>
+      <h1 className="display">{title}</h1>
+      <div className="lede" style={{ fontSize: 16 }}>{children}</div>
+      {action}
     </div>
   )
 }
 
-/* ── The address → name transformation ─────────────────────────────────── */
-
-function Transformation({ address, name, slug }) {
+function IdCard({ label, slug, chip, chipTone = 'orange', meta, image, won }) {
   return (
-    <div className="transform">
-      <div className="transform-row">
-        <span className="transform-label">Your wallet today</span>
-        <span className="transform-hex">{address}</span>
+    <div className={`id-card${won ? ' won' : ''}`}>
+      <span className="ring1" aria-hidden="true" /><span className="ring2" aria-hidden="true" />
+      <div className="top">
+        <RwaMark size={36} tone="dark" />
+        <span className={`pill ${chipTone}`} style={{ color: 'var(--ink)' }}>{chip}</span>
       </div>
-      <span className="transform-arrow" aria-hidden="true" />
-      <div className="transform-row">
-        <span className="transform-label">After you claim</span>
-        <span className="transform-name">
-          {name}<span className="transform-suffix">.{slug}.rwa-id.eth</span>
-        </span>
+      {image && <img className="art" src={image} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
+      <div className="name">
+        <strong>{label}<span>.{slug}.rwa-id.eth</span></strong>
+        <small>{meta}</small>
       </div>
+      <span className="bar8" aria-hidden="true" />
     </div>
   )
 }
-
-/* ── What the identity is actually for ─────────────────────────────────── */
 
 function Utility({ slug, transferable }) {
   return (
-    <dl className="utility">
-      <div className="utility-item">
-        <dt>One name, every wallet</dt>
-        <dd>
-          People can send you assets using the name instead of a 42-character address.
-          It works in MetaMask, Rainbow, Trust and Uniswap — anything that reads ENS,
-          not only {slug}.
-        </dd>
-      </div>
-      <div className="utility-item">
-        <dt>Issued by {slug}</dt>
-        <dd>
-          {slug} allowlisted your wallet, and the record of that sits on Ethereum where
-          anyone can check it. The name is evidence they onboarded you.
-        </dd>
-      </div>
-      <div className="utility-item">
-        <dt>Held in your wallet</dt>
-        <dd>
-          It is minted to you and lives in your wallet, not on a platform server.{' '}
-          {transferable
-            ? 'You can transfer it later if you need to.'
-            : 'It is soulbound — it cannot be transferred or sold.'}
-        </dd>
-      </div>
-    </dl>
+    <div className="utility">
+      <div><i style={{ background: 'var(--lime)' }} /><span><b>One name, every wallet</b><p>People send to the name instead of a 42-character address. Works in MetaMask, Rainbow, Trust and anything that reads ENS.</p></span></div>
+      <div><i style={{ background: 'var(--orange)' }} /><span><b>Issued by {slug}</b><p>{slug} allowlisted your wallet, and that record sits on-chain where anyone can check it.</p></span></div>
+      <div><i style={{ background: 'var(--ink)' }} /><span><b>Held in your wallet</b><p>Minted to you, not stored on a platform server. {transferable ? 'This one is transferable: you can move it later.' : 'This one is soulbound: it stays with this wallet.'}</p></span></div>
+    </div>
   )
 }
 
-/* ── Page ──────────────────────────────────────────────────────────────── */
+/** ipfs:// and ar:// artwork rendered through a public gateway. */
+function artUrl(uri) {
+  if (!uri) return null
+  if (uri.startsWith('ipfs://')) return `https://ipfs.onchain-id.id/ipfs/${uri.slice(7)}`
+  if (uri.startsWith('ar://')) return `https://arweave.net/${uri.slice(5)}`
+  return uri
+}
 
-export default function ClaimPage({ projectId, cid }) {
+/** /claim with no link: explain where claiming starts, and accept a pasted link. */
+export function ClaimStart() {
+  const [value, setValue] = useState('')
+  const [bad, setBad] = useState(false)
+  useEffect(() => { document.title = 'Claim your name · RWA ID' }, [])
+  const open = (e) => {
+    e.preventDefault()
+    try {
+      const u = new URL(value.trim(), window.location.origin)
+      if (!u.searchParams.get('claim') || !u.searchParams.get('proofs')) throw new Error()
+      navigate(`/claim?${u.searchParams.toString()}`)
+    } catch { setBad(true) }
+  }
+  return (
+    <Shell>
+      <div className="claim-grid center">
+        <div className="claim-pitch">
+          <span className="kicker">Claim</span>
+          <h1 className="claim-h1">Your wallet,<br /><mark>with a name on it.</mark></h1>
+          <p className="lede" style={{ maxWidth: 520 }}>
+            Claiming starts from the link your platform sent you. It names the platform and carries the proof that your
+            wallet is on their list. Open it, or paste it here.
+          </p>
+          <form onSubmit={open} className="field" style={{ maxWidth: 560 }}>
+            <div className="input-affix">
+              <input value={value} onChange={(e) => { setValue(e.target.value); setBad(false) }} placeholder="https://rwa-id.com/claim?claim=…&proofs=…" aria-label="Claim link" />
+              <button className="btn btn-ink btn-sm" type="submit" disabled={!value.trim()}>Open</button>
+            </div>
+            {bad && <span className="hint bad">That is not a claim link. It should contain ?claim= and &proofs=.</span>}
+          </form>
+        </div>
+        <IdCard label="you" slug="yourplatform" chip="Reserved" meta="Issued by your platform · Robinhood Chain" />
+      </div>
+    </Shell>
+  )
+}
+
+export default function ClaimPage({ projectId, cid, version }) {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
-  const pid = BigInt(projectId)
+  const pid = useMemo(() => { try { return BigInt(projectId) } catch { return null } }, [projectId])
 
   const [proofs, setProofs] = useState(null)
   const [ipfsError, setIpfsError] = useState('')
-  const [ipfsLoading, setIpfsLoading] = useState(true)
-  const [slowClaim, setSlowClaim] = useState(false)
+  const [slow, setSlow] = useState(false)
+
+  const legacy = version !== REGISTRY_VERSION
 
   useEffect(() => {
+    if (legacy || pid == null) return
     let cancelled = false
-    setIpfsLoading(true)
-    setIpfsError('')
     fetchProofSet(cid)
-      .then(data => { if (!cancelled) { setProofs(data); setIpfsLoading(false) } })
-      .catch(err => {
-        if (cancelled) return
-        setIpfsError(err.message || 'Could not load the allowlist for this link.')
-        setIpfsLoading(false)
-      })
+      .then(d => { if (!cancelled) setProofs(d) })
+      .catch(err => { if (!cancelled) setIpfsError(err.message || 'Could not load the allowlist for this link.') })
     return () => { cancelled = true }
-  }, [cid])
+  }, [cid, legacy, pid])
 
-  const { data: projectRaw } = useReadContract({
-    address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'projects', args: [pid],
-  })
+  const ok = !legacy && pid != null
+  const { data: projectRaw, error: projectError } = useReadContract(read('projects', [pid], ok))
   const project = parseProject(projectRaw)
+  const { data: fee } = useReadContract(read('effectiveClaimFee', [pid], ok))
+  const { data: pool, refetch: refetchPool } = useReadContract(read('sponsorBalance', [pid], ok))
+  const { data: image } = useReadContract(read('projectImage', [pid], ok))
+  const { data: hasClaimed, refetch: refetchClaimed } = useReadContract(read('claimed', [pid, address], ok && !!address))
+  const erc = (functionName, args) => ({ address: USDG_ADDRESS, abi: ERC20_ABI, functionName, args, chainId: ROBINHOOD_CHAIN_ID, query: { enabled: !!address } })
+  const { data: allowance, refetch: refetchAllowance } = useReadContract(erc('allowance', [address, RWAID_ADDRESS]))
+  const { data: balance } = useReadContract(erc('balanceOf', [address]))
 
-  const { data: minFee } = useReadContract({
-    address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'minimumClaimFee',
-  })
+  const approveTx = useTx()
+  const claimTx = useTx()
 
-  const { data: hasClaimed, refetch: refetchClaimed } = useReadContract({
-    address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'claimed', args: [pid, address],
-    query: { enabled: !!address },
-  })
-
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: USDC_ADDRESS, abi: USDC_ABI, functionName: 'allowance', args: [address, RWAID_ADDRESS],
-    query: { enabled: !!address },
-  })
-
-  const { data: balance } = useReadContract({
-    address: USDC_ADDRESS, abi: USDC_ABI, functionName: 'balanceOf', args: [address],
-    query: { enabled: !!address },
-  })
-
-  const fee = effectiveFee(project, minFee)
-  const entry = isConnected && proofs
-    ? proofs.entries?.find(e => (e.wallet || e.address)?.toLowerCase() === address?.toLowerCase())
-    : null
-
-  const approved = allowance !== undefined && allowance >= fee
-  const funded = balance !== undefined && balance >= fee
-
-  const { writeContract: writeApprove, data: approveHash, isPending: approvePending, error: approveError } = useWriteContract()
-  const { isLoading: approveConfirming, data: approveReceipt } = useWaitForTransactionReceipt({ hash: approveHash })
-
-  const { writeContract: writeClaim, data: claimHash, isPending: claimPending, error: claimError } = useWriteContract()
-  const { isLoading: claimConfirming, data: claimReceipt } = useWaitForTransactionReceipt({ hash: claimHash })
-
-  // A receipt arriving is not the same as the call succeeding — a reverted
-  // transaction still produces one, so keying success off the query alone
-  // reported "identity claimed" for claims that never happened.
-  const claimDone = claimReceipt?.status === 'success'
-  const claimReverted = claimReceipt?.status === 'reverted'
-
-  useEffect(() => { if (approveReceipt?.status === 'success') refetchAllowance() }, [approveReceipt, refetchAllowance])
-  useEffect(() => { if (claimDone) refetchClaimed() }, [claimDone, refetchClaimed])
-
-  // Waiting indefinitely with no explanation is the worst version of this screen:
-  // a transaction that never reaches the network looks identical to a slow one.
+  useEffect(() => { if (approveTx.stage === 'done') refetchAllowance() }, [approveTx.stage, refetchAllowance])
+  useEffect(() => { if (claimTx.stage === 'done') { refetchClaimed(); refetchPool() } }, [claimTx.stage, refetchClaimed, refetchPool])
   useEffect(() => {
-    if (!claimConfirming) { setSlowClaim(false); return }
-    const t = setTimeout(() => setSlowClaim(true), 45_000)
+    if (claimTx.stage !== 'pending') { setSlow(false); return }
+    const t = setTimeout(() => setSlow(true), 45_000)
     return () => clearTimeout(t)
-  }, [claimConfirming])
+  }, [claimTx.stage])
 
-  const handleDisconnect = async () => {
+  const slug = project?.slug
+  useEffect(() => { if (slug) document.title = `Claim your ${slug}.rwa-id.eth name · RWA ID` }, [slug])
+
+  const disconnectAll = async () => {
     try { await modal.disconnect() } catch { /* already closed */ }
     try { disconnect() } catch { /* already gone */ }
   }
+  const shell = (children) => <Shell slug={slug} address={isConnected ? address : null} onDisconnect={disconnectAll}>{children}</Shell>
 
-  const slug = project?.slug
-  const shell = (children) => (
-    <Shell slug={slug} address={isConnected ? address : null} onDisconnect={handleDisconnect}>
-      {children}
-    </Shell>
-  )
-
-  /* ── Loading ── */
-  if (ipfsLoading || !project) {
+  if (legacy) {
     return shell(
-      <Notice icon={<span className="spinner lg" />} title="Checking your eligibility">
-        Reading the allowlist from IPFS and the registry from Ethereum mainnet.
+      <Notice icon="!" tone="orange" title="This link is for the old registry">
+        RWA ID moved to Robinhood Chain in October 2026, and this claim link was issued for the previous registry on
+        Ethereum mainnet. Ask the platform that sent it for a new link.
+      </Notice>,
+    )
+  }
+  if (pid == null) {
+    return shell(<Notice icon="!" tone="orange" title="This link is not working">The project number in this link is not valid.</Notice>)
+  }
+  if (ipfsError || projectError) {
+    return shell(
+      <Notice icon="!" tone="orange" title="This link is not working">
+        {ipfsError || 'The registry could not be read right now. Reload in a moment.'} {slug ? `Ask ${slug} for a fresh link if it keeps failing.` : ''}
+      </Notice>,
+    )
+  }
+  if (!proofs || !project || fee === undefined || pool === undefined) {
+    return shell(<Notice icon={<span className="spinner lg" />} title="Checking your eligibility">Reading the allowlist from IPFS and the registry from Robinhood Chain.</Notice>)
+  }
+  // The proof set must be the one the project is enforcing. A stale or foreign
+  // link would otherwise walk the client into a claim that can only revert.
+  if (proofs.merkleRoot?.toLowerCase() !== project.merkleRoot?.toLowerCase()) {
+    return shell(
+      <Notice icon="!" tone="orange" title="This link is out of date">
+        {slug} has published a newer allowlist since this link was made. Ask them for the current claim link.
       </Notice>,
     )
   }
 
-  /* ── Broken link ── */
-  if (ipfsError) {
-    return shell(
-      <Notice tone="danger" icon={<Warning size={22} />} title="This link is not working">
-        {ipfsError} Ask {slug || 'the platform that sent it'} for a fresh claim link.
-      </Notice>,
-    )
-  }
+  const entry = isConnected && proofs.entries?.find(e => (e.wallet || e.address)?.toLowerCase() === address?.toLowerCase())
+  const sponsored = pool >= fee
+  const art = artUrl(image)
+  const name = entry?.name
 
   /* ── Claimed ── */
-  if (hasClaimed || claimDone) {
-    const name = entry?.name
-    const full = name ? `${name}.${slug}.rwa-id.eth` : null
+  if (hasClaimed || claimTx.stage === 'done') {
+    let tokenId = null
+    for (const log of claimTx.receipt?.logs ?? []) {
+      try {
+        const ev = decodeEventLog({ abi: [IDENTITY_CLAIMED], data: log.data, topics: log.topics })
+        tokenId = ev.args.tokenId.toString()
+      } catch { /* not ours */ }
+    }
+    const full = name ? `${name}.${slug}.rwa-id.eth` : `${slug}.rwa-id.eth`
     return shell(
-      <div className="claim-done">
-        <IdentityCard name={full || `${slug}.rwa-id.eth`} />
-        <div className="claim-done-copy">
-          <span className="claim-eyebrow good"><Check size={12} />Claimed</span>
-          <h1 className="claim-h1 sm">{full || 'Identity claimed'}</h1>
-          <p className="claim-lede">
-            It is live on Ethereum mainnet and held by {shortAddress(address)}. Try it in
-            any ENS-aware wallet — type the name where you would normally paste your
-            address.
+      <div className="claim-grid center">
+        <IdCard won label={name || 'your name'} slug={slug} chip="Claimed" chipTone="lime" image={art}
+          meta={`${tokenId ? `token #${tokenId} · ` : ''}held by ${shortAddress(address)}`} />
+        <div className="claim-pitch" style={{ gap: 20 }}>
+          <span className="pill lime ring" style={{ alignSelf: 'flex-start' }}>✓ It’s yours</span>
+          <h1 className="claim-h1" style={{ fontSize: 'clamp(36px,4.8vw,68px)', overflowWrap: 'anywhere' }}>
+            {name ? <>{name}.{slug}<br />.rwa-id.eth</> : full}
+          </h1>
+          <p className="lede" style={{ fontSize: 17 }}>
+            It’s live and held by {shortAddress(address)}. Try it in any ENS-aware wallet: type the name where you’d
+            normally paste your address.
           </p>
-          <div className="claim-links">
-            {full && (
-              <a className="btn btn-ink" href={`https://app.ens.domains/${full}`} target="_blank" rel="noreferrer">
-                View in ENS<External size={12} />
-              </a>
-            )}
-            {claimHash && (
-              <a className="btn" href={`https://etherscan.io/tx/${claimHash}`} target="_blank" rel="noreferrer">
-                Transaction<External size={12} />
-              </a>
-            )}
+          <div className="row">
+            {name && <a className="btn btn-ink" href={`https://app.ens.domains/${full}`} target="_blank" rel="noreferrer">View in ENS ↗</a>}
+            {tokenId && <a className="btn" href={explorerToken(RWAID_ADDRESS, tokenId)} target="_blank" rel="noreferrer">Token ↗</a>}
+            {claimTx.hash && <a className="btn" href={explorerTx(claimTx.hash)} target="_blank" rel="noreferrer">Transaction ↗</a>}
           </div>
         </div>
       </div>,
@@ -243,155 +240,114 @@ export default function ClaimPage({ projectId, cid }) {
   /* ── Not connected ── */
   if (!isConnected) {
     return shell(
-      <div className="claim-layout">
+      <div className="claim-grid">
         <div className="claim-pitch">
-          <span className="claim-eyebrow">Issued by {slug}</span>
-          <h1 className="claim-h1">Your wallet,<br />with a name on it</h1>
-          <p className="claim-lede">
-            {slug} has reserved a name for you under <code>{slug}.rwa-id.eth</code>.
-            Connect the wallet they allowlisted to see which name is yours.
+          <span className="kicker">Issued by {slug}</span>
+          <h1 className="claim-h1">Your wallet,<br /><mark>with a name on it.</mark></h1>
+          <p className="lede" style={{ maxWidth: 520 }}>
+            {slug} has reserved a name for you under {slug}.rwa-id.eth. Connect the wallet they allowlisted to see which name is yours.
           </p>
-          <button className="btn btn-ink btn-lg" onClick={() => modal.open()}>
-            Connect wallet<ArrowRight size={14} />
-          </button>
+          <button className="btn btn-ink btn-lg" style={{ alignSelf: 'flex-start', color: 'var(--lime)' }} onClick={() => modal.open()}>Connect wallet →</button>
           <Utility slug={slug} transferable={project.transferable} />
         </div>
-        <aside className="claim-aside">
-          <IdentityCard name={`you.${slug}.rwa-id.eth`} pending />
-          <p className="claim-aside-note">
-            Every identity mints with its artwork stored on Ethereum itself — no image
-            server to go down, nothing to keep alive.
+        <aside className="stack">
+          <IdCard label="you" slug={slug} chip="Reserved" image={art}
+            meta={`${project.transferable ? 'Transferable' : 'Soulbound'} · ${art ? `${slug} artwork` : 'artwork stored on-chain'} · Robinhood Chain`} />
+          <p className="note" style={{ padding: '0 8px' }}>
+            {sponsored
+              ? `${slug} covers the claim fee, so claiming is free: one wallet confirmation and a little ETH on Robinhood Chain for gas.`
+              : `Claiming costs ${usd(fee)} USDG and takes two wallet confirmations: approve, then claim. Every identity mints straight to your wallet.`}
           </p>
         </aside>
       </div>,
     )
   }
 
-  /* ── Connected, not allowlisted ── */
+  /* ── Not allowlisted ── */
   if (!entry) {
     return shell(
-      <Notice tone="neutral" icon={<Close size={22} width={2} />} title="This wallet is not on the allowlist">
-        <p>
-          {shortAddress(address)} is not in the proof set for {slug}. If you have more
-          than one wallet, try the one you gave them — otherwise ask {slug} to add you
-          and re-publish.
-        </p>
-        <button className="btn" onClick={handleDisconnect} style={{ marginTop: 18 }}>
-          Try another wallet
-        </button>
+      <Notice icon="✕" title="Not on the allowlist" action={<button className="btn" onClick={disconnectAll}>Try another wallet</button>}>
+        {shortAddress(address)} is not in {slug}’s proof set. If you have more than one wallet, try the one you gave them, or ask {slug} to add you.
       </Notice>,
     )
   }
 
-  const full = `${entry.name}.${slug}.rwa-id.eth`
+  const full = `${name}.${slug}.rwa-id.eth`
 
   /* ── Paused ── */
   if (!project.active) {
     return shell(
-      <Notice tone="warn" icon={<Pause size={20} />} title="Claiming is paused">
-        {slug} has paused new claims. Your place is unaffected —{' '}
-        <span className="mono">{full}</span> is still reserved for this wallet and you can
-        claim it when they reopen.
+      <Notice icon="II" tone="orange" title="Claiming is paused">
+        {slug} has paused new claims. {full} is still reserved for this wallet, and you can claim it when they reopen.
       </Notice>,
     )
   }
 
-  const busy = approvePending || approveConfirming || claimPending || claimConfirming
-  const error = approveError || claimError
+  const approved = sponsored || (allowance !== undefined && allowance >= fee)
+  const funded = sponsored || (balance !== undefined && balance >= fee)
+  const busy = ['signing', 'pending'].includes(approveTx.stage) || ['signing', 'pending'].includes(claimTx.stage)
+  const error = approveTx.error || claimTx.error
+
+  const doApprove = () => approveTx.writeContract({ address: USDG_ADDRESS, abi: ERC20_ABI, functionName: 'approve', args: [RWAID_ADDRESS, fee] })
+  const doClaim = () => { if (claimTx.stage === 'reverted') claimTx.reset(); claimTx.writeContract({ address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'claim', args: [pid, name, entry.proof] }) }
+
+  const label = !approved
+    ? approveTx.stage === 'signing' ? 'Confirm in your wallet…' : approveTx.stage === 'pending' ? 'Approving…' : `Approve ${usd(fee)} USDG`
+    : claimTx.stage === 'signing' ? 'Confirm in your wallet…' : claimTx.stage === 'pending' ? 'Minting your identity…' : 'Claim this name →'
 
   return shell(
-    <div className="claim-layout">
+    <div className="claim-grid">
       <div className="claim-pitch">
-        <span className="claim-eyebrow">Issued by {slug}</span>
-        <h1 className="claim-h1">Your wallet,<br />with a name on it</h1>
-        <Transformation address={address} name={entry.name} slug={slug} />
+        <span className="kicker">Issued by {slug}</span>
+        <h1 className="claim-h1">Your wallet,<br /><mark>with a name on it.</mark></h1>
+        <div className="transform-card">
+          <div className="from"><span className="label">Your wallet today</span><span>{address}</span></div>
+          <span className="down" aria-hidden="true">↓</span>
+          <div className="to"><span className="label" style={{ color: 'var(--steel)' }}>After you claim</span><strong>{name}<span>.{slug}.rwa-id.eth</span></strong></div>
+        </div>
         <Utility slug={slug} transferable={project.transferable} />
       </div>
 
-      <aside className="claim-aside">
-        <IdentityCard name={full} pending />
+      <aside className="stack">
+        <IdCard label={name} slug={slug} chip="Ready to claim" chipTone="lime" image={art}
+          meta={`${project.transferable ? 'Transferable' : 'Soulbound'} · ${art ? `${slug} artwork` : 'artwork stored on-chain'} · Robinhood Chain`} />
+        <div className="claim-box">
+          <div className="kv well">
+            <div className="kv-row"><span>One-time fee</span><span>{sponsored ? `Free · sponsored by ${slug}` : `${usd(fee)} USDG`}</span></div>
+            <div className="kv-row"><span>Network</span><span>Robinhood Chain</span></div>
+            {!sponsored && <div className="kv-row"><span>Your balance</span><span>{balance !== undefined ? `${usd(balance)} USDG` : '—'}</span></div>}
+          </div>
 
-        <dl className="claim-facts">
-          <div><dt>Name</dt><dd className="mono">{full}</dd></div>
-          <div><dt>One-time fee</dt><dd>{usd(fee)} USDC</dd></div>
-          <div><dt>Type</dt><dd>{project.transferable ? 'Transferable' : 'Soulbound'}</dd></div>
-        </dl>
-
-        {!funded ? (
-          <div className="notice notice-warn">
-            <Warning size={14} />
+          <div className={`notice ${sponsored ? 'good' : ''}`} style={sponsored ? undefined : { background: 'var(--paper)' }}>
+            <span className="n-icon" style={sponsored ? undefined : { background: '#fff' }}>{sponsored ? '1' : '2'}</span>
             <span>
-              Claiming costs {usd(fee)} USDC and {shortAddress(address)} holds{' '}
-              {balance !== undefined ? usd(balance) : '—'}. Top up and reload this page.
+              {sponsored
+                ? <><b>One wallet confirmation.</b> {slug} covers the fee; you only pay a fraction of a cent in ETH for gas.</>
+                : <><b>Two wallet confirmations.</b> First approve {usd(fee)} USDG so the registry can take the fee, then claim. You’ll need a little ETH on Robinhood Chain for gas.</>}
             </span>
           </div>
-        ) : (
-          <div className="claim-action">
-            <div className="claim-steps">
-              <div className={`claim-step ${approved ? 'is-done' : 'is-current'}`}>
-                <span className="claim-step-num">{approved ? <Check size={11} /> : '1'}</span>
-                Approve {usd(fee)} USDC
-              </div>
-              <div className={`claim-step ${approved ? 'is-current' : ''}`}>
-                <span className="claim-step-num">2</span>
-                Claim your name
-              </div>
+
+          {!funded ? (
+            <div className="notice warn">
+              <span className="n-icon">!</span>
+              <span>Claiming costs {usd(fee)} USDG on Robinhood Chain and this wallet holds {balance !== undefined ? usd(balance) : '—'}. Add USDG (bridged USDC arrives as USDG), then reload.</span>
             </div>
+          ) : (
+            <>
+              {!sponsored && (
+                <div className="steps2">
+                  <span className={approved ? 'done' : 'cur'}><i>{approved ? '✓' : '1'}</i>{approved ? 'USDG approved' : `Approve ${usd(fee)} USDG`}</span>
+                  <span className={approved ? 'cur' : ''}><i>2</i>Claim your name</span>
+                </div>
+              )}
+              <button className="btn btn-lime btn-lg btn-full" disabled={busy} onClick={approved ? doClaim : doApprove}>{label}</button>
+            </>
+          )}
 
-            {!approved ? (
-              <button
-                className="btn btn-ink btn-full btn-lg"
-                disabled={busy}
-                onClick={() => writeApprove({
-                  address: USDC_ADDRESS, abi: USDC_ABI, functionName: 'approve',
-                  args: [RWAID_ADDRESS, fee],
-                })}
-              >
-                {approvePending ? 'Confirm in your wallet…'
-                  : approveConfirming ? 'Approving…'
-                  : `Approve ${usd(fee)} USDC`}
-              </button>
-            ) : (
-              <button
-                className="btn btn-ink btn-full btn-lg"
-                disabled={busy}
-                onClick={() => writeClaim({
-                  address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'claim',
-                  args: [pid, entry.name, entry.proof],
-                })}
-              >
-                {claimPending ? 'Confirm in your wallet…'
-                  : claimConfirming ? 'Minting your identity…'
-                  : <>Claim this name<ArrowRight size={14} /></>}
-              </button>
-            )}
-
-            {slowClaim && claimConfirming && (
-              <div className="notice notice-warn">
-                <Warning size={14} />
-                <span>
-                  This is taking longer than usual. The transaction may not have reached
-                  the network — check the activity list in your wallet, and reload this
-                  page to start again if nothing is pending there.
-                </span>
-              </div>
-            )}
-
-            {claimReverted && (
-              <div className="notice notice-danger">
-                <Warning size={14} />
-                <span>The claim was rejected on-chain and no name was minted. You were not charged the fee.</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="notice notice-danger">
-                <Warning size={14} />
-                <span>{errorText(error)}</span>
-              </div>
-            )}
-          </div>
-        )}
+          {slow && <div className="notice warn"><span className="n-icon">!</span><span>This is taking longer than usual. Check your wallet’s activity list, and reload this page to start again if nothing is pending there.</span></div>}
+          {claimTx.stage === 'reverted' && <div className="notice danger"><span className="n-icon">!</span><span>The claim was rejected on-chain and no name was minted. No fee was taken.</span></div>}
+          {error && <div className="notice danger"><span className="n-icon">!</span><span>{errorText(error)}</span></div>}
+        </div>
       </aside>
     </div>,
   )

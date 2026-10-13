@@ -2,7 +2,7 @@ import { formatUnits } from 'viem'
 
 export const ZERO_ROOT = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-// USDC has 6 decimals everywhere in this app.
+// USDG (the registry's payment token) has 6 decimals, like USDC.
 export function usd(value, { decimals = 2 } = {}) {
   const n = typeof value === 'bigint' ? Number(formatUnits(value, 6)) : Number(value || 0)
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -82,13 +82,27 @@ export function treasuryPercent(protocolFeePercent) {
   return 100 - Number(protocolFeePercent ?? DEFAULT_PROTOCOL_FEE_PERCENT)
 }
 
-// The contract treats claimFee == 0 as "inherit the protocol minimum".
+// v4 charges max(claimFee, minimumClaimFee): the minimum is a floor, not a
+// default for zero. (v3 charged any non-zero fee as set, floor or not.)
+// Prefer the contract's own effectiveClaimFee(projectId) where it is at hand.
 export function effectiveFee(project, minimumFee) {
-  if (!project) return minimumFee ?? 500000n
-  return project.claimFee > 0n ? project.claimFee : (minimumFee ?? 500000n)
+  const min = minimumFee ?? 500000n
+  if (!project) return min
+  return project.claimFee > min ? project.claimFee : min
 }
 
 export function errorText(err) {
   if (!err) return ''
   return err.shortMessage || err.details || err.message || String(err)
+}
+
+// Slug rules, mirroring RWAIDv4._validateAndNormalizeSlug: 3-32 chars, a-z 0-9
+// and inner hyphens, and no "--" in positions 3-4 (ENSIP-15 would refuse the
+// whole namespace). The contract lowercases; the console does it as you type.
+export function slugProblem(slug) {
+  if (slug.length < 3 || slug.length > 32) return 'Use 3–32 characters.'
+  if (!/^[a-z0-9-]+$/.test(slug)) return 'Only lowercase a–z, 0–9 and hyphens are allowed.'
+  if (slug.startsWith('-') || slug.endsWith('-')) return 'A hyphen cannot start or end the slug.'
+  if (slug.length > 3 && slug[2] === '-' && slug[3] === '-') return 'ENS rejects "--" in the third and fourth positions.'
+  return null
 }

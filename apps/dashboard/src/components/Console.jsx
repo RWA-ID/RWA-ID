@@ -1,90 +1,109 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useDisconnect } from 'wagmi'
+import { useAccount, useDisconnect, useSwitchChain } from 'wagmi'
 import { modal } from '../lib/wagmi'
 import { RWAID_ADDRESS } from '../lib/contracts'
+import { ROBINHOOD_CHAIN_ID, explorerAddress } from '../lib/chain'
 import { useProjects } from '../lib/useProjects'
 import { initials, shortAddress } from '../lib/format'
-import {
-  ChevronUpDown, Coin, Disconnect, External, Grid, Help,
-  List, Lock, Pause, Person, Refresh, Search, Vault, Warning,
-} from './icons'
+import { linkTo } from '../lib/nav'
+import { RwaMark, Wordmark, Lockup } from './Brand'
 
-import ProjectsScreen    from './screens/ProjectsScreen'
-import CreateProject     from './screens/CreateProject'
-import OverviewScreen    from './screens/OverviewScreen'
-import AllowlistScreen   from './screens/AllowlistScreen'
-import ClaimFeeScreen    from './screens/ClaimFeeScreen'
-import TreasuryScreen    from './screens/TreasuryScreen'
+import ProjectsScreen from './screens/ProjectsScreen'
+import CreateProject from './screens/CreateProject'
+import OverviewScreen from './screens/OverviewScreen'
+import AllowlistScreen from './screens/AllowlistScreen'
+import ClaimFeeScreen from './screens/ClaimFeeScreen'
+import SponsorshipScreen from './screens/SponsorshipScreen'
+import TreasuryScreen from './screens/TreasuryScreen'
+import ArtworkScreen from './screens/ArtworkScreen'
 import TransferabilityScreen from './screens/TransferabilityScreen'
 import AvailabilityScreen from './screens/AvailabilityScreen'
-import RegistryScreen    from './screens/RegistryScreen'
-import OwnershipScreen   from './screens/OwnershipScreen'
-import SetupGuide        from './SetupGuide'
-import CommandPalette    from './CommandPalette'
+import RegistryScreen from './screens/RegistryScreen'
+import OwnershipScreen from './screens/OwnershipScreen'
+import SetupGuide from './SetupGuide'
+import CommandPalette from './CommandPalette'
 
-const PROJECT_NAV = [
-  { id: 'overview',   label: 'Overview',              Icon: Grid },
-  { id: 'allowlist',  label: 'Allowlist',             Icon: List },
-  { id: 'fee',        label: 'Claim fee',             Icon: Coin },
-  { id: 'treasury',   label: 'Treasury',              Icon: Vault },
-  { id: 'xfer',       label: 'Transferability',       Icon: Lock },
-  { id: 'pause',      label: 'Availability',          Icon: Pause },
-]
-const IDENTITY_NAV = [
-  { id: 'registry',   label: 'Registry & revocation', Icon: Search },
-]
-const ADMIN_NAV = [
-  { id: 'ownership',  label: 'Ownership',             Icon: Person },
+export const NAV = [
+  { group: 'Project', items: [
+    ['overview', 'Overview'], ['allowlist', 'Allowlist'], ['fee', 'Claim fee'], ['sponsor', 'Sponsorship', 'v4'],
+    ['treasury', 'Treasury'], ['artwork', 'Artwork', 'v4'], ['xfer', 'Transferability'], ['pause', 'Availability'],
+  ] },
+  { group: 'Identities', items: [['registry', 'Registry & revocation']] },
+  { group: 'Administration', items: [['ownership', 'Ownership']] },
 ]
 
-const CRUMBS = {
-  projects: 'All projects', create: 'New project', overview: null,
-  allowlist: 'Allowlist', fee: 'Claim fee', treasury: 'Treasury',
-  xfer: 'Transferability', pause: 'Availability',
-  registry: 'Registry & revocation', ownership: 'Ownership',
+export const TITLES = {
+  projects: 'All projects', create: 'Register a namespace', overview: null, allowlist: 'Allowlist',
+  fee: 'Claim fee', sponsor: 'Sponsorship', treasury: 'Treasury', artwork: 'Artwork', xfer: 'Transferability',
+  pause: 'Availability', registry: 'Registry & revocation', ownership: 'Ownership',
+}
+
+const SCREENS = {
+  overview: OverviewScreen, allowlist: AllowlistScreen, fee: ClaimFeeScreen, sponsor: SponsorshipScreen,
+  treasury: TreasuryScreen, artwork: ArtworkScreen, xfer: TransferabilityScreen, pause: AvailabilityScreen,
+  registry: RegistryScreen, ownership: OwnershipScreen,
+}
+
+/** Signed-out console: one card, one button. */
+export function ConnectGate() {
+  useEffect(() => { document.title = 'Console · RWA ID' }, [])
+  return (
+    <div className="claim">
+      <header className="claim-head"><Lockup href="/" onClick={linkTo} size={26} word={16} /><span className="ns">Console</span></header>
+      <main className="claim-main">
+        <div className="claim-notice" style={{ maxWidth: 620 }}>
+          <span className="sq" style={{ background: 'var(--lime)' }}><RwaMark size={34} tone="light" /></span>
+          <h1 className="display">Open the console</h1>
+          <p className="lede" style={{ fontSize: 16 }}>
+            Connect the wallet that owns your namespace, or the one you want to register it with. Everything here is
+            read from and written to Robinhood Chain; there is no account to create.
+          </p>
+          <button className="btn btn-ink btn-lg" style={{ color: 'var(--lime)' }} onClick={() => modal.open()}>Connect wallet →</button>
+          <a href="/" onClick={linkTo} className="meta">← Back to rwa-id.com</a>
+        </div>
+      </main>
+    </div>
+  )
 }
 
 export default function Console({ address }) {
   const { disconnect } = useDisconnect()
+  const { chainId } = useAccount()
+  const { switchChain } = useSwitchChain()
   const { projects, loading, error, logError, protocolFeePercent, reload } = useProjects(address)
 
-  const [screen, setScreen]   = useState('projects')
-  const [pid, setPid]         = useState(null)
-  const [guide, setGuide]     = useState(false)
+  const [screen, setScreen] = useState('projects')
+  const [pid, setPid] = useState(null)
+  const [guide, setGuide] = useState(false)
   const [palette, setPalette] = useState(false)
   const [switching, setSwitching] = useState(false)
+  const [sideOpen, setSideOpen] = useState(false)
   const [freshness, setFreshness] = useState(Date.now())
 
-  const project = useMemo(
-    () => projects.find(p => p.id === pid) ?? null,
-    [projects, pid],
-  )
+  const project = useMemo(() => projects.find(p => p.id === pid) ?? null, [projects, pid])
 
   // A project that disappears (ownership transferred away) must not strand the UI.
   useEffect(() => {
     if (pid != null && !loading && !project) { setPid(null); setScreen('projects') }
   }, [pid, loading, project])
 
+  useEffect(() => { document.title = `${project ? project.slug : 'Console'} · RWA ID` }, [project])
+
   const go = useCallback((next, nextPid) => {
     if (nextPid !== undefined) setPid(nextPid)
     setScreen(next)
     setPalette(false)
     setSwitching(false)
+    setSideOpen(false)
     window.scrollTo({ top: 0 })
   }, [])
 
-  const refresh = useCallback(async () => {
-    await reload()
-    setFreshness(Date.now())
-  }, [reload])
+  const refresh = useCallback(async () => { await reload(); setFreshness(Date.now()) }, [reload])
 
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setPalette(p => !p)
-      }
-      if (e.key === 'Escape') { setPalette(false); setSwitching(false) }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette(p => !p) }
+      if (e.key === 'Escape') { setPalette(false); setSwitching(false); setSideOpen(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -95,193 +114,147 @@ export default function Console({ address }) {
     try { disconnect() } catch { /* wagmi connector already gone */ }
   }
 
+  const inProject = pid != null && !!project
   const screenProps = { project, projectId: pid, go, refresh, address, protocolFeePercent }
-  const inProject = pid != null && project
+  const Screen = SCREENS[screen]
+  const wrongChain = chainId !== undefined && chainId !== ROBINHOOD_CHAIN_ID
 
-  const renderScreen = () => {
-    switch (screen) {
-      case 'create':    return <CreateProject address={address} go={go} onCreated={refresh} protocolFeePercent={protocolFeePercent} />
-      case 'overview':  return inProject ? <OverviewScreen {...screenProps} /> : null
-      case 'allowlist': return inProject ? <AllowlistScreen {...screenProps} /> : null
-      case 'fee':       return inProject ? <ClaimFeeScreen {...screenProps} /> : null
-      case 'treasury':  return inProject ? <TreasuryScreen {...screenProps} /> : null
-      case 'xfer':      return inProject ? <TransferabilityScreen {...screenProps} /> : null
-      case 'pause':     return inProject ? <AvailabilityScreen {...screenProps} /> : null
-      case 'registry':  return inProject ? <RegistryScreen {...screenProps} /> : null
-      case 'ownership': return inProject ? <OwnershipScreen {...screenProps} /> : null
-      default:
-        return (
-          <ProjectsScreen
-            projects={projects} loading={loading} error={error}
-            go={go} onRetry={refresh} protocolFeePercent={protocolFeePercent}
-          />
-        )
-    }
-  }
+  const body = screen === 'create'
+    ? <CreateProject address={address} go={go} onCreated={refresh} protocolFeePercent={protocolFeePercent} />
+    : Screen && inProject
+      ? <><ProjectHead project={project} screen={screen} go={go} /><Screen {...screenProps} /></>
+      : <ProjectsScreen projects={projects} loading={loading} error={error} go={go} onRetry={refresh} />
 
-  const crumb = screen === 'overview' ? (project?.slug ?? 'Project') : CRUMBS[screen] ?? 'Console'
-
-  const navSection = (items) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {items.map(({ id, label, Icon }) => (
-        <button
-          key={id}
-          className={`nav-item${screen === id ? ' is-active' : ''}`}
-          onClick={() => go(id)}
-        >
-          <Icon size={14} />{label}
-        </button>
-      ))}
-    </div>
-  )
+  const crumb = screen === 'overview' ? (project?.slug ?? 'Project') : TITLES[screen] ?? 'Console'
 
   return (
     <div className="console">
-      <aside className="sidebar">
-        <div style={{ padding: '18px 16px 14px', position: 'relative' }}>
-          <div className="sidebar-brand">
-            <span className="brand-mark">R</span>
-            <span className="brand-word">RWA·ID</span>
-            <span className="brand-tag">CONSOLE</span>
-          </div>
-
-          <button className="project-switch" onClick={() => (projects.length ? setSwitching(s => !s) : go('create'))}>
-            <span className="initials" style={{ background: project ? 'var(--accent)' : 'rgba(255,255,255,.12)' }}>
-              {project ? initials(project.slug) : '··'}
+      <aside className={`side${sideOpen ? ' open' : ''}`}>
+        <div className="side-top">
+          <a href="/" onClick={linkTo} className="side-brand">
+            <RwaMark size={26} tone="dark" /><Wordmark size={16} /><span className="tag">CONSOLE</span>
+          </a>
+          <button className="switch" onClick={() => (projects.length ? setSwitching(s => !s) : go('create', null))}>
+            <span className={`initials${project ? ' lime' : ''}`}>{project ? initials(project.slug) : '··'}</span>
+            <span className="who">
+              <b>{project ? project.slug : 'All projects'}</b>
+              <small>{project ? `${project.slug}.rwa-id.eth` : `${projects.length} namespace${projects.length === 1 ? '' : 's'}`}</small>
             </span>
-            <span style={{ minWidth: 0, flex: 1 }}>
-              <span className="name">{project ? project.slug : 'All projects'}</span>
-              <span className="sub">
-                {project ? `${project.slug}.rwa-id.eth` : `${projects.length} namespace${projects.length === 1 ? '' : 's'}`}
-              </span>
-            </span>
-            <ChevronUpDown size={12} style={{ flex: 'none', color: 'rgba(244,244,242,.45)' }} />
+            <span style={{ color: 'var(--faint)', fontSize: 11 }}>↕</span>
           </button>
-
           {switching && (
-            <div className="switcher">
-              <button className="switcher-item" onClick={() => go('projects', null)}>
-                <span className="switcher-initials">··</span>
-                <span className="switcher-name">All projects</span>
-              </button>
+            <div className="switch-list">
+              <button className="switch-item" onClick={() => go('projects', null)}><span className="initials">··</span>All projects</button>
               {projects.map(p => (
-                <button key={p.id} className="switcher-item" onClick={() => go('overview', p.id)}>
-                  <span className="switcher-initials">{initials(p.slug)}</span>
-                  <span style={{ minWidth: 0 }}>
-                    <span className="switcher-name">{p.slug}</span>
-                    <span className="switcher-sub">#{p.id} · {p.active ? 'Active' : 'Paused'}</span>
-                  </span>
+                <button key={p.id} className="switch-item" onClick={() => go('overview', p.id)}>
+                  <span className="initials lime">{initials(p.slug)}</span>
+                  <span>{p.slug}<small>#{p.id} · {p.active ? 'Active' : 'Paused'}</small></span>
                 </button>
               ))}
-              <button className="switcher-item accent" onClick={() => go('create', null)}>
-                <span className="switcher-initials">+</span>
-                <span className="switcher-name">Register a namespace</span>
-              </button>
+              <button className="switch-item add" onClick={() => go('create', null)}><span className="initials">+</span>Register a namespace</button>
             </div>
           )}
         </div>
 
-        <div className="sidebar-scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 12px 12px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {inProject ? (
-            <>
-              <div>
-                <div className="nav-group-label">Project</div>
-                {navSection(PROJECT_NAV)}
-              </div>
-              <div>
-                <div className="nav-group-label">Identities</div>
-                {navSection(IDENTITY_NAV)}
-              </div>
-              <div>
-                <div className="nav-group-label">Administration</div>
-                {navSection(ADMIN_NAV)}
-                <button className="nav-item" onClick={() => setGuide(true)}>
-                  <Help size={14} />Setup guide
+        <nav className="side-nav">
+          {inProject ? NAV.map(g => (
+            <section key={g.group}>
+              <h6>{g.group}</h6>
+              {g.items.map(([id, label, badge]) => (
+                <button key={id} className={`nav-item${screen === id ? ' on' : ''}`} onClick={() => go(id)}>
+                  <i />{label}{badge && <span className="new">NEW</span>}
                 </button>
-              </div>
-            </>
-          ) : (
-            <div>
-              <div className="nav-group-label">Console</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <button className={`nav-item${screen === 'projects' ? ' is-active' : ''}`} onClick={() => go('projects', null)}>
-                  <Grid size={14} />All projects
-                </button>
-                <button className={`nav-item${screen === 'create' ? ' is-active' : ''}`} onClick={() => go('create', null)}>
-                  <Person size={14} />Register a namespace
-                </button>
-                <button className="nav-item" onClick={() => setGuide(true)}>
-                  <Help size={14} />Setup guide
-                </button>
-              </div>
-            </div>
+              ))}
+              {g.group === 'Administration' && <button className="nav-item" onClick={() => setGuide(true)}><i />Setup guide</button>}
+            </section>
+          )) : (
+            <section>
+              <h6>Console</h6>
+              <button className={`nav-item${screen === 'projects' ? ' on' : ''}`} onClick={() => go('projects', null)}><i />All projects</button>
+              <button className={`nav-item${screen === 'create' ? ' on' : ''}`} onClick={() => go('create', null)}><i />Register a namespace</button>
+              <button className="nav-item" onClick={() => setGuide(true)}><i />Setup guide</button>
+            </section>
           )}
-        </div>
+        </nav>
 
-        <div className="sidebar-foot">
-          <div className="wallet-card">
+        <div className="side-foot">
+          <div className="wallet">
             <span className="avatar" />
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="addr">{shortAddress(address)}</span>
-              <span className="net"><span className="dot" />Ethereum mainnet</span>
+            <span className="who">
+              <b>{shortAddress(address)}</b>
+              {wrongChain
+                ? <small className="wrong" role="button" style={{ cursor: 'pointer' }} onClick={() => switchChain({ chainId: ROBINHOOD_CHAIN_ID })}><i />Wrong network · switch</small>
+                : <small><i />Robinhood Chain</small>}
             </span>
-            <button className="shell-icon-btn" onClick={handleDisconnect} title="Disconnect" aria-label="Disconnect wallet">
-              <Disconnect size={13} />
-            </button>
+            <button className="icon-btn-dark" onClick={handleDisconnect} title="Disconnect" aria-label="Disconnect wallet">⏻</button>
           </div>
-          <button className="cmd-trigger" onClick={() => setPalette(true)}>
-            Search &amp; commands <span className="kbd" style={{ marginLeft: 'auto' }}>⌘K</span>
-          </button>
+          <button className="cmd" onClick={() => setPalette(true)}>Search &amp; commands <span className="kbd">⌘K</span></button>
         </div>
       </aside>
 
-      <div className="console-main">
+      <div className="main">
         <div className="topbar">
+          <button className="btn btn-sm side-toggle" onClick={() => setSideOpen(true)} aria-label="Open navigation">☰</button>
           <div className="crumbs">
             <button onClick={() => go('projects', null)}>Projects</button>
-            <span className="sep">/</span>
-            <span className="current">{crumb}</span>
+            <span style={{ color: 'var(--placeholder)' }}>/</span>
+            <b>{crumb}</b>
           </div>
-          <div className="row" style={{ marginLeft: 'auto' }}>
-            <span className="freshness">
-              <span className="dot" />read from mainnet
-            </span>
-            <button className="btn btn-sm" onClick={refresh} disabled={loading}>
-              <Refresh size={12} />{loading ? 'Reading…' : 'Refresh'}
-            </button>
-            <a className="btn btn-sm" href={`https://etherscan.io/address/${RWAID_ADDRESS}`} target="_blank" rel="noreferrer">
-              <External size={12} />Etherscan
-            </a>
+          <div className="topbar-actions">
+            <span className="read-chip"><i />read from Robinhood Chain</span>
+            <button className="btn btn-sm" onClick={refresh} disabled={loading}>{loading ? 'Reading…' : '↻ Refresh'}</button>
+            <a className="btn btn-sm hide-sm" href={explorerAddress(RWAID_ADDRESS)} target="_blank" rel="noreferrer">Explorer ↗</a>
           </div>
         </div>
 
-        <div className="console-content">
-          <div className="console-inner" key={`${screen}-${pid}-${freshness}`}>
-            {logError && (
-              <div className="notice notice-warn" style={{ marginBottom: 20 }}>
-                <Warning size={15} />
-                <span>
-                  Contract events are unavailable, so allowlist counts and activity are missing.
-                  Storage-backed figures (claims, revenue, fees) are unaffected. {logError}
-                </span>
+        <div className="content">
+          <div className="content-inner" key={`${screen}-${pid}-${freshness}`}>
+            {wrongChain && (
+              <div className="notice warn" style={{ marginBottom: 20 }}>
+                <span className="n-icon">!</span>
+                <span style={{ flex: 1 }}>Your wallet is on another network. RWA ID runs on Robinhood Chain; every action here will ask to switch first.</span>
+                <button className="btn btn-sm btn-ink" onClick={() => switchChain({ chainId: ROBINHOOD_CHAIN_ID })}>Switch</button>
               </div>
             )}
-            {renderScreen()}
+            {logError && (
+              <div className="notice warn" style={{ marginBottom: 20 }}>
+                <span className="n-icon">!</span>
+                <span>Contract events are unavailable, so allowlist counts and activity are missing. Storage-backed figures (claims, revenue, fees) are unaffected. {logError}</span>
+              </div>
+            )}
+            {body}
           </div>
         </div>
       </div>
 
       {guide && <SetupGuide onClose={() => setGuide(false)} />}
       {palette && (
-        <CommandPalette
-          onClose={() => setPalette(false)}
-          projects={projects}
-          hasProject={!!inProject}
-          go={go}
-          onGuide={() => { setPalette(false); setGuide(true) }}
-        />
+        <CommandPalette onClose={() => setPalette(false)} projects={projects} hasProject={inProject} go={go}
+          onGuide={() => { setPalette(false); setGuide(true) }} />
       )}
-      {switching && <div className="switcher-scrim" onClick={() => setSwitching(false)} />}
+      {(switching || sideOpen) && <div style={{ position: 'fixed', inset: 0, zIndex: 20 }} onClick={() => { setSwitching(false); setSideOpen(false) }} />}
+    </div>
+  )
+}
+
+function ProjectHead({ project, screen, go }) {
+  const overview = screen === 'overview'
+  return (
+    <div className="page-head">
+      <div>
+        <span className="kicker">{overview ? 'Project' : `${project.slug}.rwa-id.eth`}</span>
+        <div className="title-row">
+          <h1 className="display">{overview ? project.slug : TITLES[screen]}</h1>
+          <span className={`pill ${project.active ? 'lime' : 'orange'}`}>{project.active ? 'Active' : 'Paused'}</span>
+        </div>
+        <span className="meta" style={{ fontSize: 12.5 }}>{project.slug}.rwa-id.eth · project #{project.id} · owner {shortAddress(project.owner)}</span>
+      </div>
+      {overview && (
+        <div className="row">
+          <button className="btn" onClick={() => go('registry')}>Look up an identity</button>
+          <button className="btn btn-ink" onClick={() => go('allowlist')}>Update allowlist</button>
+        </div>
+      )}
     </div>
   )
 }

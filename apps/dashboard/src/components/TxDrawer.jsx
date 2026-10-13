@@ -1,71 +1,83 @@
-import { useEffect, useState } from 'react'
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useCallback, useEffect, useState } from 'react'
+import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { RWAID_ADDRESS } from '../lib/contracts'
+import { explorerTx, ROBINHOOD_CHAIN_ID } from '../lib/chain'
 import { errorText, num } from '../lib/format'
-import { Check, Close, Warning } from './icons'
 
 /**
  * Wraps a single contract write so every panel drives the drawer the same way.
- * Panels own the hook; the drawer is presentation + guardrails.
+ *
+ * A receipt is not success: a reverted transaction still produces one, and
+ * wagmi's isSuccess only means "a receipt arrived". Stage 'done' therefore
+ * requires receipt.status === 'success'; a revert is its own stage.
  */
 export function useTx() {
-  const { writeContract, data: hash, isPending, error, reset } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess, data: receipt } =
-    useWaitForTransactionReceipt({ hash })
+  const { writeContract: write, data: hash, isPending, error, reset: resetWrite } = useWriteContract()
+  const { isLoading: isConfirming, data: receipt, error: receiptError } = useWaitForTransactionReceipt({ hash, chainId: ROBINHOOD_CHAIN_ID })
+  const { chainId } = useAccount()
+  const { switchChainAsync, isPending: switching } = useSwitchChain()
+  const [switchError, setSwitchError] = useState(null)
 
-  const stage = isSuccess ? 'done'
+  // Every write is pinned to Robinhood Chain. A wallet sitting on another
+  // network is asked to switch first rather than failing with a chain mismatch.
+  const writeContract = useCallback(async (args) => {
+    setSwitchError(null)
+    try {
+      if (chainId !== ROBINHOOD_CHAIN_ID) await switchChainAsync({ chainId: ROBINHOOD_CHAIN_ID })
+    } catch (err) {
+      setSwitchError(new Error(`Switch your wallet to Robinhood Chain to continue. ${errorText(err)}`))
+      return
+    }
+    write({ ...args, chainId: ROBINHOOD_CHAIN_ID })
+  }, [chainId, switchChainAsync, write])
+
+  const reset = useCallback(() => { setSwitchError(null); resetWrite() }, [resetWrite])
+
+  const stage = receipt?.status === 'success' ? 'done'
+    : receipt?.status === 'reverted' ? 'reverted'
     : isConfirming ? 'pending'
-    : isPending ? 'signing'
+    : isPending || switching ? 'signing'
     : 'review'
 
-  return { writeContract, hash, isPending, isConfirming, isSuccess, receipt, error, reset, stage }
+  return { writeContract, hash, receipt, error: switchError || error || receiptError, reset, stage, isConfirming, isPending }
 }
 
 const STAGE_COPY = {
   signing: { label: 'Waiting for your wallet…', meta: 'confirm in wallet' },
-  pending: { label: 'Broadcasting to Ethereum…', meta: 'waiting for a block' },
+  pending: { label: 'Sending to Robinhood Chain…', meta: 'waiting for a block' },
 }
 
 /**
- * @param {object}   tx        - the object returned by useTx()
- * @param {string}   title     - drawer heading
- * @param {string}   summary   - one-line plain-language description of the effect
- * @param {Array}    rows      - [{ k, v, tone }] state-change table (before → after)
- * @param {string}   fn        - contract function signature shown under CALL
- * @param {boolean}  danger    - red treatment + requires typed confirmation
- * @param {string}   warning   - danger copy
- * @param {string}   confirmWord - word the operator must type when danger
- * @param {function} onSign    - fires the write
- * @param {function} onDone    - called when the operator dismisses a confirmed tx
+ * @param {object}   tx          the object returned by useTx()
+ * @param {string}   summary     one-line plain-language description of the effect
+ * @param {Array}    rows        [{ k, v }] state-change table
+ * @param {string}   fn          contract function signature shown under CALL
+ * @param {string}   to          contract called (defaults to the registry)
+ * @param {boolean}  danger      orange treatment + typed confirmation
  */
 export default function TxDrawer({
-  open, onClose, tx, title, summary, rows = [], fn,
+  open, onClose, tx, title, summary, rows = [], fn, to = RWAID_ADDRESS,
   danger = false, warning, confirmWord = 'CONFIRM',
   ctaLabel = 'Sign in wallet', onSign, onDone, children,
 }) {
   const [typed, setTyped] = useState('')
   const [ack, setAck]     = useState(false)
 
-  // Reset guardrails whenever a fresh drawer opens.
-  useEffect(() => {
-    if (open) { setTyped(''); setAck(false) }
-  }, [open])
+  useEffect(() => { if (open) { setTyped(''); setAck(false) } }, [open])
+
+  const busy = tx.stage === 'signing' || tx.stage === 'pending'
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => { if (e.key === 'Escape' && tx.stage === 'review') onClose() }
+    const onKey = (e) => { if (e.key === 'Escape' && !busy) onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose, tx.stage])
+  }, [open, onClose, busy])
 
   if (!open) return null
 
-  const canSign = danger
-    ? typed.trim().toUpperCase() === confirmWord.toUpperCase()
-    : ack
-
+  const canSign = danger ? typed.trim().toUpperCase() === confirmWord.toUpperCase() : ack
   const handleDone = () => { onDone?.(); onClose() }
-  const busy = tx.stage === 'signing' || tx.stage === 'pending'
 
   return (
     <div className="drawer-wrap" role="dialog" aria-modal="true" aria-label={title}>
@@ -73,115 +85,85 @@ export default function TxDrawer({
       <div className="drawer">
         <div className="drawer-head">
           <span>{title}</span>
-          <button className="close-btn" onClick={onClose} disabled={busy} aria-label="Close">
-            <Close size={12} />
-          </button>
+          <button className="icon-x" onClick={onClose} disabled={busy} aria-label="Close">✕</button>
         </div>
 
         <div className="drawer-body">
-          <div className={`notice ${danger ? 'notice-danger' : 'notice-good'}`}>
-            {danger ? <Warning size={14} /> : <Check size={14} />}
-            <span style={{ fontWeight: 500 }}>{summary}</span>
+          <div className={`notice ${danger ? 'danger' : 'good'}`}>
+            <span className="n-icon">{danger ? '!' : '✓'}</span>
+            <span style={{ fontWeight: 600 }}>{summary}</span>
           </div>
 
           {rows.length > 0 && (
-            <div>
-              <div className="mono-label" style={{ marginBottom: 12 }}>State change</div>
-              <div className="tbl">
-                {rows.map((r) => (
-                  <div key={r.k} className="kv-row" style={{ padding: '12px 14px' }}>
-                    <span className="kv-key">{r.k}</span>
-                    <span className={`kv-val ${r.tone || ''}`}>{r.v}</span>
-                  </div>
+            <div className="card">
+              <div className="card-head">State change</div>
+              <div className="kv" style={{ padding: '4px 20px 10px' }}>
+                {rows.map(r => (
+                  <div key={r.k} className="kv-row"><span>{r.k}</span><span style={r.tone === 'danger' ? { color: 'var(--orange-deep)' } : undefined}>{r.v}</span></div>
                 ))}
               </div>
             </div>
           )}
 
-          <div>
-            <div className="mono-label" style={{ marginBottom: 12 }}>Call</div>
-            <div className="code-block" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
-              <div className="dim">contract</div>{RWAID_ADDRESS}
-              <div className="dim" style={{ marginTop: 9 }}>function</div>
-              <span style={{ color: 'var(--accent)' }}>{fn}</span>
-              <div className="dim" style={{ marginTop: 9 }}>network</div>Ethereum mainnet
-            </div>
+          <div className="code">
+            <div className="dim">contract</div>{to}
+            <div className="dim" style={{ marginTop: 9 }}>function</div><span className="hl">{fn}</span>
+            <div className="dim" style={{ marginTop: 9 }}>network</div>Robinhood Chain (4663)
           </div>
 
           {children}
 
           {danger ? (
-            <div className="notice notice-danger" style={{ flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Warning size={15} />
-                <div>{warning}</div>
-              </div>
-              <div>
-                <label className="label" style={{ color: 'var(--danger-ink)', fontWeight: 400, fontSize: 11.5 }}>
-                  Type <strong className="mono">{confirmWord}</strong> to enable signing
-                </label>
-                <input
-                  className="input-row is-invalid"
-                  style={{ width: '100%', padding: '10px 12px', fontSize: 13 }}
-                  placeholder={confirmWord}
-                  value={typed}
-                  onChange={(e) => setTyped(e.target.value)}
-                  disabled={busy || tx.stage === 'done'}
-                />
-              </div>
+            <div className="notice danger" style={{ flexDirection: 'column' }}>
+              <span>{warning}</span>
+              <label className="field" style={{ width: '100%' }}>
+                <span className="label" style={{ color: 'var(--orange-deep)' }}>Type {confirmWord} to enable signing</span>
+                <input className="input bad" placeholder={confirmWord} value={typed}
+                  onChange={(e) => setTyped(e.target.value)} disabled={busy || tx.stage === 'done'} />
+              </label>
             </div>
           ) : (
-            <label className="checkbox-row">
-              <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)}
-                disabled={busy || tx.stage === 'done'} />
-              <span>I have reviewed the state change above and understand it is written to Ethereum mainnet.</span>
-            </label>
+            <button type="button" className={`check${ack ? ' on' : ''}`} onClick={() => setAck(a => !a)} disabled={busy || tx.stage === 'done'}>
+              <span className="box">{ack ? '✓' : ''}</span>
+              I have reviewed the change above and understand it is written to Robinhood Chain.
+            </button>
           )}
 
-          {tx.error && (
-            <div className="notice notice-danger">
-              <Warning size={14} />
-              <span>{errorText(tx.error)}</span>
+          {tx.error && tx.stage !== 'done' && (
+            <div className="notice danger"><span className="n-icon">!</span><span>{errorText(tx.error)}</span></div>
+          )}
+          {tx.stage === 'reverted' && (
+            <div className="notice danger">
+              <span className="n-icon">!</span>
+              <span>The transaction was rejected on-chain and nothing changed. <a href={explorerTx(tx.hash)} target="_blank" rel="noreferrer">View it ↗</a></span>
             </div>
           )}
         </div>
 
         <div className="drawer-foot">
-          {tx.stage === 'review' && (
-            <div style={{ display: 'flex', gap: 10 }}>
+          {(tx.stage === 'review' || tx.stage === 'reverted') && (
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
               <button className="btn" onClick={onClose}>Cancel</button>
-              <button
-                className={`btn ${danger ? 'btn-danger' : 'btn-accent'}`}
-                style={{ flex: 1 }}
-                onClick={onSign}
-                disabled={!canSign}
-              >
-                {ctaLabel}
+              <button className={`btn ${danger ? 'btn-orange' : 'btn-lime'}`} style={{ flex: 1 }}
+                onClick={() => { if (tx.stage === 'reverted') tx.reset(); onSign() }} disabled={!canSign}>
+                {tx.stage === 'reverted' ? 'Try again' : ctaLabel}
               </button>
             </div>
           )}
-
           {busy && (
-            <div className="row" style={{ padding: 2 }}>
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
               <span className="spinner" />
-              <span style={{ font: '500 13px/1.4 var(--f-sans)' }}>{STAGE_COPY[tx.stage].label}</span>
-              <span className="mono-note" style={{ marginLeft: 'auto' }}>{STAGE_COPY[tx.stage].meta}</span>
+              <span style={{ fontWeight: 600 }}>{STAGE_COPY[tx.stage].label}</span>
+              <span className="meta" style={{ marginLeft: 'auto' }}>{STAGE_COPY[tx.stage].meta}</span>
             </div>
           )}
-
           {tx.stage === 'done' && (
-            <div className="row">
-              <span style={{
-                width: 20, height: 20, borderRadius: '50%', flex: 'none',
-                background: 'var(--good-bg)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: 'var(--good)',
-              }}>
-                <Check size={12} width={2} />
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <span className="pill lime ring">✓</span>
+              <span style={{ fontWeight: 600 }}>
+                Confirmed in block {num(tx.receipt?.blockNumber)} · <a href={explorerTx(tx.hash)} target="_blank" rel="noreferrer">tx ↗</a>
               </span>
-              <span style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--good-deep)' }}>
-                Confirmed in block {num(tx.receipt?.blockNumber)}
-              </span>
-              <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={handleDone}>Done</button>
+              <button className="btn btn-sm btn-ink" style={{ marginLeft: 'auto' }} onClick={handleDone}>Done</button>
             </div>
           )}
         </div>

@@ -1,0 +1,261 @@
+{
+  "disclaimer": "These namespaces are held to protect the companies named from impersonation. A reservation does not mean the company is affiliated with, endorses, or has partnered with RWA ID. Company names and logos are trademarks of their respective owners and are shown only to identify who each namespace is held for. If you represent one of these companies, email partner@rwa-id.com and the multisig will assign the namespace to your wallet.",
+  "groups": [
+    {
+      "group": "Institutional / securities",
+      "names": [
+        {
+          "slug": "securitize",
+          "company": "Securitize",
+          "domain": "securitize.io",
+          "logo": "securitize.png"
+        },
+        {
+          "slug": "ondo",
+          "company": "Ondo Finance",
+          "domain": "ondo.finance",
+          "logo": "ondo.png"
+        },
+        {
+          "slug": "superstate",
+          "company": "Superstate",
+          "domain": "superstate.com",
+          "logo": "superstate.png"
+        },
+        {
+          "slug": "backed",
+          "company": "Backed Finance",
+          "domain": "backed.fi",
+          "logo": "backed.png"
+        },
+        {
+          "slug": "archax",
+          "company": "Archax",
+          "domain": "archax.com",
+          "logo": "archax.png"
+        }
+      ]
+    },
+    {
+      "group": "Credit / lending",
+      "names": [
+        {
+          "slug": "centrifuge",
+          "company": "Centrifuge",
+          "domain": "centrifuge.io",
+          "logo": "centrifuge.png"
+        },
+        {
+          "slug": "maple",
+          "company": "Maple Finance",
+          "domain": "maple.finance",
+          "logo": "maple.png"
+        },
+        {
+          "slug": "goldfinch",
+          "company": "Goldfinch",
+          "domain": "goldfinch.finance",
+          "logo": "goldfinch.png"
+        },
+        {
+          "slug": "credix",
+          "company": "Credix",
+          "domain": "credix.finance",
+          "logo": "credix.png"
+        },
+        {
+          "slug": "clearpool",
+          "company": "Clearpool",
+          "domain": "clearpool.finance",
+          "logo": "clearpool.png"
+        }
+      ]
+    },
+    {
+      "group": "Real estate",
+      "names": [
+        {
+          "slug": "realt",
+          "company": "RealT",
+          "domain": "realt.co",
+          "logo": "realt.png"
+        },
+        {
+          "slug": "lofty",
+          "company": "Lofty",
+          "domain": "lofty.ai",
+          "logo": "lofty.png"
+        },
+        {
+          "slug": "propy",
+          "company": "Propy",
+          "domain": "propy.com",
+          "logo": "propy.png"
+        },
+        {
+          "slug": "homebase",
+          "company": "Homebase",
+          "domain": "homebasedao.io",
+          "logo": "homebase.png"
+        },
+        {
+          "slug": "tangible",
+          "company": "Tangible",
+          "domain": "tangible.store",
+          "logo": "tangible.png"
+        }
+      ]
+    },
+    {
+      "group": "Infrastructure / compliance",
+      "names": [
+        {
+          "slug": "polymesh",
+          "company": "Polymesh",
+          "domain": "polymesh.network",
+          "logo": "polymesh.png"
+        },
+        {
+          "slug": "tokeny",
+          "company": "Tokeny",
+          "domain": "tokeny.com",
+          "logo": "tokeny.png"
+        },
+        {
+          "slug": "realio",
+          "company": "Realio",
+          "domain": "realio.network",
+          "logo": "realio.png"
+        },
+        {
+          "slug": "defactor",
+          "company": "Defactor",
+          "domain": "defactor.com",
+          "logo": "defactor.png"
+        },
+        {
+          "slug": "fasset",
+          "company": "Fasset",
+          "domain": "fasset.io",
+          "logo": "fasset.png"
+        }
+      ]
+    },
+    {
+      "group": "Commodities / funds",
+      "names": [
+        {
+          "slug": "openeden",
+          "company": "OpenEden",
+          "domain": "openeden.com",
+          "logo": "openeden.png"
+        },
+        {
+          "slug": "swarm",
+          "company": "Swarm",
+          "domain": "swarm.com",
+          "logo": "swarm.png"
+        },
+        {
+          "slug": "bitbond",
+          "company": "Bitbond",
+          "domain": "bitbond.com",
+          "logo": "bitbond.png"
+        },
+        {
+          "slug": "finblox",
+          "company": "Finblox",
+          "domain": "finblox.com",
+          "logo": "finblox.png"
+        },
+        {
+          "slug": "parcl",
+          "company": "Parcl",
+          "domain": "parcl.co",
+          "logo": "parcl.png"
+        }
+      ]
+    },
+    {
+      "group": "Robinhood",
+      "names": [
+        {
+          "slug": "robinhood",
+          "company": "Robinhood",
+          "domain": "robinhood.com",
+          "logo": "robinhood.png"
+        },
+        {
+          "slug": "robinhoodchain",
+          "company": "Robinhood",
+          "domain": "robinhood.com",
+          "logo": "robinhood.png"
+        },
+        {
+          "slug": "robinhood-chain",
+          "company": "Robinhood",
+          "domain": "robinhood.com",
+          "logo": "robinhood.png"
+        },
+        {
+          "slug": "hood",
+          "company": "Robinhood",
+          "domain": "robinhood.com",
+          "logo": "robinhood.png"
+        }
+      ]
+    },
+    {
+      "group": "Robinhood Chain infrastructure",
+      "names": [
+        {
+          "slug": "paxos",
+          "company": "Paxos",
+          "domain": "paxos.com",
+          "logo": "paxos.png"
+        },
+        {
+          "slug": "bitgo",
+          "company": "BitGo",
+          "domain": "bitgo.com",
+          "logo": "bitgo.png"
+        },
+        {
+          "slug": "morpho",
+          "company": "Morpho",
+          "domain": "morpho.org",
+          "logo": "morpho.png"
+        }
+      ]
+    },
+    {
+      "group": "Robinhood Chain markets",
+      "names": [
+        {
+          "slug": "arcus",
+          "company": "Arcus",
+          "domain": "arcus.xyz",
+          "logo": "arcus.png"
+        },
+        {
+          "slug": "lighter",
+          "company": "Lighter",
+          "domain": "lighter.xyz",
+          "logo": "lighter.png"
+        },
+        {
+          "slug": "rialto",
+          "company": "Rialto",
+          "domain": "rialto.xyz",
+          "logo": "rialto.png"
+        },
+        {
+          "slug": "meridian",
+          "company": "Meridian",
+          "domain": "meridian.xyz",
+          "logo": "meridian.png"
+        }
+      ]
+    }
+  ]
+}
