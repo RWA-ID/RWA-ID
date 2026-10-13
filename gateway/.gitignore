@@ -138,3 +138,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .DS_Store
 attached_assets/
+
+# Wrangler local secrets
+.dev.vars
