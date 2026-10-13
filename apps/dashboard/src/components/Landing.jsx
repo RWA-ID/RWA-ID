@@ -15,8 +15,8 @@ export const REGISTRY_URL   = `https://etherscan.io/address/${RWAID_ADDRESS}`
 export const RESOLVER_URL   = 'https://etherscan.io/address/0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1'
 export const GATEWAY_URL    = 'https://gateway.rwa-id.com'
 export const CONTACT_EMAIL  = 'partner@rwa-id.com'
-export const X_HANDLE       = '@rwa_ideth'
-export const X_URL          = 'https://x.com/rwa_ideth'
+export const X_HANDLE       = '@rwaidentity'
+export const X_URL          = 'https://x.com/rwaidentity'
 
 // Must match <title> in index.html — the SPA restores it after routing away.
 const HOME_TITLE = 'RWA-ID — Identity issuance and management for RWA platforms'

@@ -113,7 +113,7 @@ function tagsFor(meta: Meta) {
     `<meta property="og:image:alt" content="${alt}" />`,
     // Some clients never fall back to og:image, so twitter:image is explicit.
     `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:site" content="@rwa_ideth" />`,
+    `<meta name="twitter:site" content="@rwaidentity" />`,
     `<meta name="twitter:title" content="${t}" />`,
     `<meta name="twitter:description" content="${d}" />`,
     `<meta name="twitter:image" content="${image}" />`,
