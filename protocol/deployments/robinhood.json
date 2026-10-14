@@ -31,7 +31,8 @@
     "deployBlock": 87996011,
     "commit": "f5616d7",
     "registry": "0x85B09167aB330641f8e5F73E2e904C75FDFa8132",
-    "owner": "none (ownerless)"
+    "owner": "none (ownerless)",
+    "verified": "Blockscout, full match (solc 0.8.24, runs 200, MIT)"
   },
   "ethereum": {
     "RwaIdOffchainResolver": {
@@ -39,7 +40,7 @@
       "deployBlock": 26187634,
       "commit": "f5616d7",
       "signer": "0xDF8E6a113f98586608C3D7a4eab68a35A97602Af",
-      "owner": "pending: Safe 0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab must call acceptOwnership() on Ethereum",
+      "owner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
       "verified": "Etherscan",
       "rwaIdEthResolverSince": "2026-10-13, block 26187657, tx 0xc37b388620773875d6434ef7de3621e97eb808ac640455b01ca0365df355968f"
     },
