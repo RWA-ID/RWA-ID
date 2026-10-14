@@ -1,159 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8" />
-<!--
-  Source for the 1200×630 share cards in public/og/. Render with
-  `node scripts/render-og.mjs` — it loads this file with ?card=home|docs and
-  screenshots #card. Geist is pulled from Google Fonts at render time only.
--->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Turret+Road:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-  :root {
-    --page: #F5F5F3;
-    --panel: #EDEDE9;
-    --ink: #0E0F11;
-    --faint: #A3A5A0;
-    --muted: #55575C;
-    --mute-3: #85878C;
-    --green: #4ADE80;
-    --f-sans: 'Geist', system-ui, sans-serif;
-    --f-mono: 'Geist Mono', ui-monospace, monospace;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box }
-  body { background: #fff; font-family: var(--f-sans) }
-  #card {
-    width: 1200px; height: 630px;
-    background: var(--page);
-    padding: 28px;
-    display: grid;
-    grid-template-columns: 1fr 274px;
-    gap: 24px;
-  }
-  .main {
-    background: var(--panel);
-    border-radius: 24px;
-    padding: 46px 52px;
-    display: flex; flex-direction: column;
-  }
-  .badge {
-    align-self: flex-start;
-    display: inline-flex; align-items: center; gap: 10px;
-    padding: 11px 18px;
-    border-radius: 999px;
-    background: #E0E0DB;
-    font: 400 13px/1 var(--f-mono);
-    letter-spacing: .14em;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-  .badge i { width: 8px; height: 8px; border-radius: 50%; background: #16A34A; display: block }
-  .spacer { flex: 1; min-height: 26px }
-  h1 {
-    font: 500 62px/1.02 var(--f-sans);
-    letter-spacing: -.04em;
-    color: var(--ink);
-  }
-  h1 .dim { color: var(--faint) }
-  .lede {
-    margin-top: 22px;
-    font: 400 21px/1.45 var(--f-sans);
-    color: var(--muted);
-    max-width: 640px;
-  }
-  .chip {
-    align-self: flex-start;
-    margin-top: 30px;
-    display: inline-flex; align-items: center; gap: 11px;
-    padding: 13px 20px;
-    border-radius: 12px;
-    background: #fff;
-    font: 400 19px/1 var(--f-mono);
-    color: var(--ink);
-  }
-  .chip i { width: 9px; height: 9px; border-radius: 50%; background: #16A34A; display: block }
-
-  .side {
-    background: #0E0F11;
-    border-radius: 24px;
-    padding: 30px 26px;
-    display: flex; flex-direction: column;
-  }
-  .brand { display: flex; align-items: center; gap: 12px }
-  .brand-mark {
-    width: 34px; height: 34px; border-radius: 10px;
-    background: #F4F4F2; color: #0E0F11;
-    display: flex; align-items: center; justify-content: center;
-    font: 600 16px/1 var(--f-mono);
-  }
-  .brand-word { font: 600 25px/1 var(--f-sans); letter-spacing: -.03em; color: #F4F4F2 }
-  .side-spacer { flex: 1 }
-  .checks { display: flex; flex-direction: column; gap: 15px }
-  .check { display: flex; align-items: center; gap: 12px; font: 400 14px/1 var(--f-mono); letter-spacing: .07em; color: #E7E7E4; text-transform: uppercase }
-  .check b {
-    width: 21px; height: 21px; border-radius: 50%;
-    background: rgba(74,222,128,.16); color: var(--green);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700;
-  }
-  .side-foot {
-    margin-top: 26px; padding-top: 20px;
-    border-top: 1px solid rgba(255,255,255,.12);
-    font: 400 12.5px/1.7 var(--f-mono);
-    color: rgba(244,244,242,.45);
-    letter-spacing: .06em;
-  }
-  .side-foot span { color: rgba(244,244,242,.72) }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #F1F1EC; }
+  #card { position: relative; width: 1200px; height: 630px; overflow: hidden; background: #0B0C0A; color: #fff; font-family: Archivo, sans-serif; }
+  .glow { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
+  .g1 { left: 80%; top: 50%; width: 900px; height: 700px; background: radial-gradient(closest-side, rgba(204,255,0,.22), rgba(204,255,0,0)); }
+  .g2 { left: 98%; top: 92%; width: 640px; height: 480px; background: radial-gradient(closest-side, rgba(255,90,31,.26), rgba(255,90,31,0)); }
+  .copy { position: absolute; left: 72px; top: 0; bottom: 0; width: 640px; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+  .lockup { position: absolute; left: 72px; top: 56px; display: flex; align-items: center; gap: 12px; }
+  .word { display: flex; align-items: center; gap: 5px; font-weight: 900; font-stretch: 118%; font-size: 26px; letter-spacing: -0.02em; }
+  .word i { width: 8px; height: 8px; border-radius: 2px; background: #FF5A1F; display: block; }
+  .mark { position: relative; display: block; }
+  .mark span { position: absolute; display: block; }
+  .kicker { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: #FF7A45; }
+  h1 { font-family: 'Turret Road', sans-serif; font-weight: 700; font-size: 92px; line-height: .92; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+  h1.display { font-family: Archivo, sans-serif; font-weight: 800; font-stretch: 70%; font-size: 104px; line-height: .86; letter-spacing: -0.01em; }
+  h1 span { color: #CCFF00; }
+  p { font-size: 24px; line-height: 1.45; color: #A3A69C; max-width: 560px; }
+  .url { position: absolute; left: 72px; bottom: 48px; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #7A7D73; }
+  .url b { color: #CCFF00; font-weight: 700; }
+  .nft { position: absolute; right: 96px; top: 56px; width: 340px; height: 400px; display: flex; flex-direction: column; justify-content: space-between; padding: 30px; background: #CCFF00; color: #0B0C0A; border-radius: 28px; clip-path: polygon(0 0,78% 0,100% 18%,100% 100%,0 100%); transform: rotate(-4deg); box-shadow: 0 40px 80px -30px rgba(0,0,0,.7); }
+  .nft small { font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #3B4A00; }
+  .nft strong { display: block; margin-top: 10px; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .chips { margin-top: 14px; display: flex; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
+  .chips span { padding: 5px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1.5px #0B0C0A; }
+  .chips span:first-child { background: #0B0C0A; color: #CCFF00; box-shadow: none; }
+  .strip { position: absolute; right: 48px; top: 500px; display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 18px; background: #1A1C17; box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); transform: rotate(3deg); }
+  .strip s { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #7A7D73; }
+  .strip b { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #FF5A1F; color: #0B0C0A; }
+  .strip strong { font-size: 19px; font-weight: 800; }
+  .strip strong em { font-style: normal; color: #7A7D73; }
+  .bigmark { position: absolute; right: 120px; top: 50%; transform: translateY(-50%) rotate(-4deg); }
+  .rings span { position: absolute; border-radius: 50%; top: 50%; transform: translateY(-50%); }
 </style>
 </head>
 <body>
-  <div id="card">
-    <div class="main">
-      <div class="badge"><i></i><span id="badge">Live on Ethereum mainnet</span></div>
-      <div class="spacer"></div>
-      <h1 id="title"></h1>
-      <p class="lede" id="lede"></p>
-      <div class="chip"><i></i><span id="chip"></span></div>
-    </div>
-    <div class="side">
-      <div class="brand">
-        <span class="brand-mark">R</span>
-        <span class="brand-word">RWA·ID</span>
-      </div>
-      <div class="side-spacer"></div>
-      <div class="checks" id="checks"></div>
-      <div class="side-foot">REGISTRY V3<br><span id="addr"></span></div>
-    </div>
-  </div>
-
+<div id="card"></div>
 <script>
-  const CARDS = {
-    home: {
-      badge: 'Live on Ethereum mainnet',
-      title: 'Identity issuance<br><span class="dim">and management</span><br>for RWA platforms.',
-      lede: 'Issue verifiable, ENS-compatible onchain identities to your clients, then administer them onchain.',
-      chip: 'joe.yourfirm.rwa-id.eth',
-      checks: ['ENS-native', 'Non-custodial', 'No backend', 'Mainnet'],
-    },
-    docs: {
-      badge: 'Registry v3 · documentation',
-      title: 'Docs for the<br><span class="dim">v3 registry.</span>',
-      lede: 'Namespaces, Merkle allowlists, USDC claim fees, onchain identity NFTs and ENS resolution — with the contract surface in full.',
-      chip: 'dashboard.rwa-id.com/docs',
-      checks: ['Quickstart', 'Resolution', 'Contract ref', 'What’s new'],
-    },
+  const mark = (w, tone) => {
+    const h = Math.round(w * 0.92), body = tone === 'dark' ? '#CCFF00' : '#0B0C0A', ink = tone === 'dark' ? '#0B0C0A' : '#CCFF00'
+    return `<span class="mark" style="width:${w}px;height:${h}px">
+      <span style="inset:0;background:${body};border-radius:${w * .24}px;clip-path:polygon(0 0,62% 0,100% 40%,100% 100%,0 100%)"></span>
+      <span style="right:0;top:0;width:${w * .3}px;height:${w * .3}px;border-radius:${w * .08}px;background:#FF5A1F"></span>
+      <span style="left:${w * .19}px;top:${w * .19}px;width:${w * .21}px;height:${w * .21}px;border-radius:50%;background:${ink}"></span>
+      <span style="left:${w * .19}px;bottom:${w * .19}px;width:${w * .42}px;height:${w * .08}px;border-radius:3px;background:${ink}"></span></span>`
   }
-  const key = new URLSearchParams(location.search).get('card') || 'home'
-  const c = CARDS[key]
-  document.getElementById('badge').textContent = c.badge
-  document.getElementById('title').innerHTML = c.title
-  document.getElementById('lede').textContent = c.lede
-  document.getElementById('chip').textContent = c.chip
-  document.getElementById('addr').textContent = '0x6413…A2C7'
-  document.getElementById('checks').innerHTML = c.checks
-    .map(t => `<div class="check"><b>✓</b>${t}</div>`).join('')
+  const lockup = `<div class="lockup">${mark(40, 'dark')}<span class="word">RWA<i></i>ID</span></div>`
+  const nft = `<div class="strip"><s>0x4f3a9c…a21c</s><b>→</b><strong>joe.acme<em>.rwa-id.eth</em></strong></div>
+    <div class="nft"><div style="display:flex;justify-content:space-between">${mark(60, 'light')}<span style="margin-right:50px;font-family:'JetBrains Mono';font-weight:700;font-size:15px">#4398</span></div>
+    <div><small>Identity NFT · acme</small><strong>joe.acme<br>.rwa-id.eth</strong><div class="chips"><span>Soulbound</span><span>Verified holder</span></div></div></div>`
+  const big = `<div class="bigmark">${mark(300, 'dark')}</div>`
+
+  const CARDS = {
+    home:    { kicker: 'Wallet identity for tokenized-asset platforms', h1: 'One name<br><span>Every client</span>', p: 'A readable ENS name for every client wallet on your platform. Live on Robinhood Chain.', art: nft, url: 'rwa-id.com' },
+    claim:   { kicker: 'Your platform reserved a name for you', h1: 'Your wallet,<br><span>with a name.</span>', display: true, p: 'Connect the wallet your platform allowlisted and claim it in one step.', art: nft, url: 'rwa-id.com/claim' },
+    console: { kicker: 'Platform console', h1: 'Register your<br><span>namespace</span>', display: true, p: 'Free to create. Allowlists, sponsorship, artwork and revocation, all on Robinhood Chain.', art: big, url: 'rwa-id.com/console' },
+    docs:    { kicker: 'Documentation · registry v4.1', h1: 'Read the<br><span>protocol</span>', display: true, p: 'Namespaces, allowlists, sponsorship, ENS resolution and the contracts behind them.', art: big, url: 'rwa-id.com/docs' },
+    terms:   { kicker: 'Legal', h1: 'Terms of<br><span>service</span>', display: true, p: 'The terms for using RWA ID and its contracts.', art: big, url: 'rwa-id.com/terms' },
+    privacy: { kicker: 'Legal', h1: 'Privacy<br><span>policy</span>', display: true, p: 'No accounts, no tracking, no server that stores your data.', art: big, url: 'rwa-id.com/privacy' },
+    refunds: { kicker: 'Legal', h1: 'Refund<br><span>policy</span>', display: true, p: 'How fees and network costs work, and why on-chain payments are final.', art: big, url: 'rwa-id.com/refunds' },
+  }
+  const c = CARDS[new URLSearchParams(location.search).get('card') || 'home']
+  document.getElementById('card').innerHTML = `
+    <span class="glow g1"></span><span class="glow g2"></span>${lockup}
+    <div class="copy"><span class="kicker">${c.kicker}</span><h1 class="${c.display ? 'display' : ''}">${c.h1}</h1><p>${c.p}</p></div>
+    ${c.art}<span class="url"><b>●</b> ${c.url}</span>`
 </script>
 </body>
 </html>

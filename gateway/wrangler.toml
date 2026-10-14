@@ -19,5 +19,5 @@ custom_domain = true
 # ALCHEMY_API_KEY (plus optional ROBINHOOD_RPC_URL / MAINNET_RPC_URL) — are set
 # with `wrangler secret put` and must NOT be declared here: a var of the same
 # name shadows the secret on every deploy.
-V4_REGISTRY = "0xb99c4333DEb732B30D83f03cAb92fe855B21999a" # RWAIDv4, Robinhood Chain
+V4_REGISTRY = "0x85B09167aB330641f8e5F73E2e904C75FDFa8132" # RWAIDv4.1, Robinhood Chain (v4.0 0xb99c… superseded, never used)
 V3_REGISTRY = "0x6413e9E6A0D4e05557463A66C34E18192324A2C7" # RWAIDv3, Ethereum mainnet

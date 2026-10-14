@@ -1,32 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://dashboard.rwa-id.com/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <loc>https://rwa-id.com/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <priority>1</priority>
   </url>
   <url>
-    <loc>https://dashboard.rwa-id.com/docs/</loc>
-    <lastmod>2026-08-02</lastmod>
+    <loc>https://rwa-id.com/docs/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://dashboard.rwa-id.com/privacy/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <loc>https://rwa-id.com/claim/</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://rwa-id.com/terms/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://dashboard.rwa-id.com/terms/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <loc>https://rwa-id.com/privacy/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://dashboard.rwa-id.com/refunds/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <loc>https://rwa-id.com/refunds/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

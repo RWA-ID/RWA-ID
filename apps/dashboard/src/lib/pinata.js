@@ -39,3 +39,21 @@ export async function findPinsByName(name) {
     .filter(f => f.name === name)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 }
+
+/** Pin one file (platform artwork) and return its CID. */
+export async function pinFile(file, name) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('name', name)
+  formData.append('network', 'public')
+
+  const res = await fetch('https://uploads.pinata.cloud/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${PINATA_JWT}` },
+    body: formData,
+  })
+  const result = await res.json().catch(() => null)
+  const cid = result?.data?.cid
+  if (!cid) throw new Error(`Pinata: upload failed (${res.status})`)
+  return cid
+}

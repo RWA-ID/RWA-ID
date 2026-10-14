@@ -36,21 +36,26 @@ export function useLookup(projectId) {
         allowFailure: true,
       })
 
-      const tokenId   = tokenIdRes.result ?? 0n
-      const isClaimed = claimedRes.result ?? false
-      const isRevoked = revokedRes.result ?? false
+      // A failed read is not "false". Defaulting it would show a throttled RPC
+      // as an unclaimed name, and offer to issue or revoke on that basis.
+      const failed = [tokenIdRes, claimedRes, revokedRes].find(r => r.status !== 'success')
+      if (failed) throw failed.error ?? new Error('A registry read failed — try again.')
+      const tokenId   = tokenIdRes.result
+      const isClaimed = claimedRes.result
+      const isRevoked = revokedRes.result
 
       // ownerOf reverts for a burned token, so only ask when the name still holds one.
+      // A live token's holder must read cleanly; there is no safe default for it.
       let holder = null
+      let transferable = null
       if (isClaimed && !isRevoked && tokenId > 0n) {
-        try {
-          holder = await readClient.readContract({
-            address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'ownerOf', args: [tokenId],
-          })
-        } catch { /* burned or never minted */ }
+        ;[holder, transferable] = await Promise.all([
+          readClient.readContract({ address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'ownerOf', args: [tokenId] }),
+          readClient.readContract({ address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'tokenTransferable', args: [tokenId] }),
+        ])
       }
 
-      setResult({ name, nameHash, node, tokenId: tokenId.toString(), isClaimed, isRevoked, holder })
+      setResult({ name, nameHash, node, tokenId: tokenId.toString(), isClaimed, isRevoked, holder, transferable })
     } catch (err) {
       setError(err.shortMessage || err.message || 'Lookup failed')
     } finally {

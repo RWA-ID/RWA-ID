@@ -2,7 +2,9 @@ User-agent: *
 Allow: /
 
 # Claim links are per-project and carry an IPFS CID; they are shared directly,
-# not indexed.
+# not indexed. The console is per-wallet.
+Disallow: /claim?
 Disallow: /?claim=
+Disallow: /console
 
-Sitemap: https://dashboard.rwa-id.com/sitemap.xml
+Sitemap: https://rwa-id.com/sitemap.xml

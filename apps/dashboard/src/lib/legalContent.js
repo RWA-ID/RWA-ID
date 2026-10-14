@@ -2,9 +2,16 @@
 // NOTE: these are operator-drafted policies, not legal advice. The entity name,
 // jurisdiction and contact address below must be confirmed by counsel before launch.
 
-export const LEGAL_ENTITY   = 'RWA-ID Labs'
+export const LEGAL_ENTITY   = 'Only Buy Bitcoin LLC'
+// How the operator is named in running text and in the page footer.
+export const LEGAL_ENTITY_DBA = 'Only Buy Bitcoin LLC, doing business as RWA ID'
+// The LLC will be renamed; the notice keeps that from reading as a change of party.
+export const LEGAL_RENAME_NOTE =
+  'Only Buy Bitcoin LLC intends to change its legal name in the future. A change of name will not change ' +
+  'the legal entity, and these policies and any rights or obligations under them will continue to apply ' +
+  'to it under its new name. We will update this page when the change takes effect.'
 export const LEGAL_CONTACT  = 'partner@rwa-id.com'
-export const LEGAL_UPDATED  = '31 July 2026'
+export const LEGAL_UPDATED  = '13 October 2026'
 export const LEGAL_JURISDICTION = 'the Republic of Panama'
 
 export const LEGAL_DOCS = {
@@ -16,7 +23,8 @@ export const LEGAL_DOCS = {
       {
         h: '1. Who we are',
         p: [
-          `${LEGAL_ENTITY} builds and maintains the RWA-ID protocol and this console. The console is a static web application that talks directly to the Ethereum blockchain and to IPFS. It has no backend server, no database and no user accounts.`,
+          `RWA ID is operated by ${LEGAL_ENTITY}, a Delaware limited liability company doing business as RWA ID (“we”, “us”). We build and maintain the RWA ID protocol and this console. The console is a static web application that talks directly to Robinhood Chain (an Ethereum layer-2 network), to Ethereum for name resolution, and to IPFS. It has no backend server, no database and no user accounts.`,
+          LEGAL_RENAME_NOTE,
         ],
       },
       {
@@ -38,19 +46,18 @@ export const LEGAL_DOCS = {
         important: true,
         p: [
           'This is the most important section of this policy. When you publish an allowlist, the proof set — including every client name and wallet address in it — is uploaded to IPFS and is public and permanent. Anyone with the CID can read it, and pinned content cannot be reliably deleted once distributed.',
-          'Likewise, every identity you issue, every fee you set and every revocation you perform is written to the Ethereum blockchain, which is public, permanent and outside anyone’s control, including ours.',
+          'Likewise, every identity you issue, every fee you set and every revocation you perform is written to Robinhood Chain, which is public, permanent and outside anyone’s control, including ours.',
           'You are the data controller for the client information you choose to publish. Before uploading an allowlist, satisfy yourself that you have a lawful basis to publish those names and wallet addresses, and use pseudonymous labels rather than full legal names or other personal data wherever your obligations allow.',
         ],
       },
       {
         h: '5. Third parties the console talks to',
         list: [
-          ['Ethereum RPC provider', 'Public node infrastructure used to read contract state and broadcast transactions. Your IP address is visible to that provider, as it is for any website you load.'],
+          ['Blockchain RPC providers', 'Public Robinhood Chain and Ethereum node infrastructure used to read contract state and broadcast transactions. Your IP address is visible to that provider, as it is for any website you load.'],
           ['Pinata (IPFS pinning)', 'Receives the allowlist proof set you choose to publish, so it can be pinned and served over IPFS.'],
           ['IPFS gateways', 'Public gateways used to fetch proof sets when a client opens a claim link.'],
           ['WalletConnect / Reown', 'Handles the wallet connection handshake when you use a mobile or WalletConnect-compatible wallet.'],
           ['Google Fonts', 'Serves the typefaces used by this interface.'],
-          ['Web3Forms', 'Receives your name, email, organisation and message only if you voluntarily submit the "Book a walkthrough" form.'],
         ],
         p: [
           'Each of these services operates under its own privacy policy. We do not control them and do not receive user data back from them.',
@@ -60,7 +67,7 @@ export const LEGAL_DOCS = {
         h: '6. Your rights',
         p: [
           'Because we hold no personal data about you, there is generally nothing for us to access, correct, export or erase. If you submitted the contact form and would like that message deleted, email us and we will remove it.',
-          'We cannot delete, amend or reverse anything written to the Ethereum blockchain or distributed over IPFS. Nobody can. Please take that into account before publishing.',
+          'We cannot delete, amend or reverse anything written to a blockchain or distributed over IPFS. Nobody can. Please take that into account before publishing.',
         ],
       },
       {
@@ -84,13 +91,14 @@ export const LEGAL_DOCS = {
       {
         h: '1. Agreement',
         p: [
-          `By connecting a wallet to this console or otherwise interacting with the RWA-ID smart contracts, you agree to these terms. If you do not agree, do not use the console. These terms are between you and ${LEGAL_ENTITY}.`,
+          `By connecting a wallet to this console or otherwise interacting with the RWA-ID smart contracts, you agree to these terms. If you do not agree, do not use the console. These terms are between you and ${LEGAL_ENTITY}, a Delaware limited liability company doing business as RWA ID.`,
+          LEGAL_RENAME_NOTE,
         ],
       },
       {
         h: '2. What the service is',
         p: [
-          'RWA-ID is a set of public smart contracts on Ethereum mainnet plus a static interface for interacting with them. The console is a convenience: the contracts are permissionless and can be used without it.',
+          'RWA-ID is a set of public smart contracts on Robinhood Chain, resolved through ENS on Ethereum, plus a static interface for interacting with them. The console is a convenience: the contracts are permissionless and can be used without it.',
           'We provide software. We do not provide custody, brokerage, exchange, payment processing, identity verification, KYC/AML screening or legal services, and nothing in the console constitutes financial, investment, tax or legal advice.',
         ],
       },
@@ -106,8 +114,8 @@ export const LEGAL_DOCS = {
       {
         h: '4. Fees',
         p: [
-          'Registering a namespace is free; you pay only network gas. Each identity claim charges a fee in USDC that you set, subject to a protocol minimum enforced by the contract. That fee is split at claim time: 70% to your nominated treasury address and 30% to the protocol.',
-          'We do not hold, escrow or process your revenue at any point. Fees settle on-chain directly to the addresses recorded in the contract. If you nominate an address you do not control, the funds are not recoverable.',
+          'Registering a namespace is free; you pay only network gas. Each identity claim charges a fee in USDG (a US-dollar stablecoin issued by Paxos) that you set, subject to a protocol minimum enforced by the contract. You may pay that fee for your clients from a sponsor pool instead. That fee is split at claim time: 70% to your nominated treasury address and 30% to the protocol.',
+          'We do not hold, escrow or process your revenue at any point. Fees settle on-chain directly to the addresses recorded in the contract. A sponsor pool you fund is held by the registry contract itself, not by us, and only your project’s owner address can withdraw it. If you nominate an address you do not control, the funds are not recoverable.',
         ],
       },
       {
@@ -164,7 +172,7 @@ export const LEGAL_DOCS = {
         h: '2. Why we cannot refund',
         list: [
           ['No custody', 'We never hold your funds. 70% of every claim fee goes to the issuer’s treasury address and 30% to the protocol, atomically, inside the same transaction.'],
-          ['No reversal', 'Ethereum has no chargeback or reversal primitive. A confirmed transfer is permanent.'],
+          ['No reversal', 'Blockchains have no chargeback or reversal primitive. A confirmed transfer is permanent.'],
           ['Gas is consumed', 'Network fees are paid to validators, not to us, and are consumed even by a transaction that reverts.'],
         ],
       },

@@ -1,159 +1,70 @@
 import { useState } from 'react'
-import { useReadContract } from 'wagmi'
-import { parseUnits, formatUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { RWAID_ADDRESS, RWAID_ABI } from '../../lib/contracts'
-import { effectiveFee, num, treasuryPercent, usd } from '../../lib/format'
+import { num, treasuryPercent, usd } from '../../lib/format'
 import TxDrawer, { useTx } from '../TxDrawer'
-import { ArrowRight, Warning } from '../icons'
+
+const MIN = 0.5
 
 export default function ClaimFeeScreen({ project, projectId, refresh, protocolFeePercent }) {
-  const [value, setValue]   = useState('')
+  const yourPct = treasuryPercent(protocolFeePercent)
+  const [fee, setFee] = useState(formatUnits(project.effectiveFee, 6))
   const [drawer, setDrawer] = useState(false)
   const tx = useTx()
 
-  const { data: minFee } = useReadContract({
-    address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'minimumClaimFee',
-  })
-  const minimum    = minFee ?? 500000n
-  const minimumNum = Number(formatUnits(minimum, 6))
-
-  const current    = effectiveFee(project, minimum)
-  const currentNum = Number(formatUnits(current, 6))
-
-  const yourPct     = treasuryPercent(protocolFeePercent)
-  const protocolPct = 100 - yourPct
-  const yourCut     = yourPct / 100
-  const protocolCut = protocolPct / 100
-
-  const parsed  = parseFloat(value)
-  const hasInput = value !== '' && Number.isFinite(parsed)
-  // 0 is meaningful: it tells the contract to fall back to the protocol minimum.
-  const nextNum = !hasInput ? currentNum : (parsed > 0 ? parsed : minimumNum)
-  const belowMin = hasInput && parsed > 0 && parsed < minimumNum
-  const unchanged = !hasInput || nextNum === currentNum
-
-  const unclaimed = project.allowlisted != null
-    ? Math.max(project.allowlisted - Number(project.totalClaimed), 0)
-    : null
-
-  const sign = () => {
-    tx.writeContract({
-      address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'updateClaimFee',
-      args: [BigInt(projectId), parsed > 0 ? parseUnits(value, 6) : 0n],
-    })
-  }
+  const n = Number(fee)
+  const ok = fee.trim() !== '' && Number.isFinite(n) && n >= 0 && /^\d*(\.\d{0,6})?$/.test(fee.trim())
+  const eff = Math.max(ok ? n : 0, MIN)
+  const current = Number(formatUnits(project.effectiveFee, 6))
+  const changed = ok && parseUnits(fee.trim(), 6) !== project.effectiveFee
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 className="screen-title" style={{ marginBottom: 7 }}>Claim fee</h1>
-        <p className="screen-sub">
-          What each client pays in USDC to claim their identity. Changes apply to claims made after the
-          transaction confirms.
-        </p>
+    <div className="grid grid-2">
+      <div className="card card-pad" style={{ gap: 18 }}>
+        <span className="card-title">Set a new fee</span>
+        <div style={{ display: 'flex', alignItems: 'center', height: 64, padding: '0 18px', borderRadius: 16, boxShadow: ok ? 'var(--ring-lime)' : 'var(--ring-orange)' }}>
+          <input value={fee} onChange={(e) => setFee(e.target.value)} inputMode="decimal" aria-label="Claim fee in USDG"
+            style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em' }} />
+          <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--faint)' }}>USDG</span>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          {[0.5, 1, 2.5, 5].map(v => <button key={v} className="btn btn-sm" onClick={() => setFee(v.toFixed(2))}>{usd(v)}</button>)}
+        </div>
+        <span className="note">
+          {ok && n < MIN ? 'Below the 0.50 USDG protocol minimum, so the contract will charge 0.50.' : `Currently ${usd(current)}. Paid once per name, in USDG, when it is claimed. Existing names are unaffected.`}
+        </span>
+        <button className="btn btn-ink btn-lg" disabled={!changed} onClick={() => setDrawer(true)}>Update claim fee</button>
       </div>
 
-      <div className="grid grid-form start" style={{ gap: 22 }}>
-        <div className="card">
-          <div className="card-head">Update fee</div>
-          <div className="card-body card-stack">
-            <div className="compare">
-              <div className="compare-cell">
-                <div className="mono-label" style={{ marginBottom: 8 }}>Current</div>
-                <div className="compare-value">{usd(current)}</div>
-              </div>
-              <ArrowRight size={16} className="compare-arrow" />
-              <div className="compare-cell next">
-                <div className="mono-label" style={{ marginBottom: 8 }}>New</div>
-                <div className="compare-value">{usd(nextNum)}</div>
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="label" htmlFor="fee-input">New claim fee</label>
-              <div className={`input-shell${belowMin ? ' is-invalid' : ''}`} style={{ maxWidth: 280 }}>
-                <input id="fee-input" type="number" min="0" step="0.01" value={value}
-                  onChange={(e) => setValue(e.target.value)} placeholder={currentNum.toFixed(2)} style={{ fontSize: 15 }} />
-                <span className="affix">USDC</span>
-              </div>
-              <div className={`hint${belowMin ? ' hint-danger' : ''}`}>
-                {belowMin
-                  ? `Below the ${usd(minimum)} protocol minimum — the contract will reject this.`
-                  : `Protocol minimum ${usd(minimum)} · enter 0 to fall back to it.`}
-              </div>
-            </div>
-
-            <div className="split-2">
-              <div className="split-cell">
-                <div className="mono-label" style={{ marginBottom: 8 }}>Your treasury · {yourPct}%</div>
-                <div className="split-value good sm">{usd(nextNum * yourCut)}</div>
-              </div>
-              <div className="split-cell muted">
-                <div className="mono-label" style={{ marginBottom: 8 }}>Protocol · {protocolPct}%</div>
-                <div className="split-value sm">{usd(nextNum * protocolCut)}</div>
-              </div>
-            </div>
-
-            <div>
-              <button className="btn btn-accent" disabled={unchanged || belowMin} onClick={() => setDrawer(true)}>
-                Review transaction<ArrowRight size={13} />
-              </button>
-            </div>
-          </div>
+      <div className="card ink card-pad" style={{ gap: 16 }}>
+        <span className="label" style={{ color: 'var(--steel)' }}>Split per claim</span>
+        <div className="split-bar">
+          <span style={{ flex: yourPct, background: 'var(--lime)' }}>{usd(eff * yourPct / 100)}</span>
+          <span style={{ flex: 100 - yourPct, background: 'var(--orange)', fontSize: 16 }}>{usd(eff * (100 - yourPct) / 100)}</span>
         </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="mono-label" style={{ marginBottom: 14 }}>Projected impact</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-              <div className="kv-row" style={{ padding: 0, border: 0 }}>
-                <span className="kv-key">Unclaimed allowlist</span>
-                <span className="kv-val">{unclaimed != null ? num(unclaimed) : '—'}</span>
-              </div>
-              <div className="kv-row" style={{ padding: 0, border: 0 }}>
-                <span className="kv-key">Your revenue if all claim</span>
-                <span className="kv-val good">
-                  {unclaimed != null ? usd(unclaimed * nextNum * yourCut) : '—'}
-                </span>
-              </div>
-              <div className="kv-row" style={{ padding: 0, border: 0 }}>
-                <span className="kv-key">Settlement</span>
-                <span className="kv-val">per claim, instant</span>
-              </div>
-            </div>
-            <div style={{ height: 1, background: 'var(--hairline-faint)', margin: '16px 0' }} />
-            <p className="body" style={{ fontSize: 12 }}>
-              Fees settle in USDC directly to your treasury at claim time. RWA-ID never holds your revenue.
-            </p>
-          </div>
+        <div className="row mono" style={{ justifyContent: 'space-between', fontSize: 11.5, color: 'var(--steel)' }}>
+          <span>{yourPct}% · your treasury</span><span>{100 - yourPct}% · protocol</span>
         </div>
+        <span className="note" style={{ color: 'var(--steel)', fontSize: 14 }}>
+          {project.allowlisted
+            ? <>At {num(project.allowlisted)} allowlisted clients, a full claim-through pays your treasury <b style={{ color: 'var(--lime)' }}>{usd(eff * yourPct / 100 * project.allowlisted)}</b>.</>
+            : 'Publish an allowlist to see what a full claim-through would pay your treasury.'}
+        </span>
+        <span className="note" style={{ color: 'var(--steel)' }}>
+          Sponsoring instead? Claims paid from your sponsor pool still route your {yourPct}% back to your treasury, so each sponsored name costs you only the protocol’s {100 - yourPct}%.
+        </span>
       </div>
-
-      {Number(project.totalClaimed) > 0 && (
-        <div className="notice notice-warn mt-20">
-          <Warning size={15} />
-          <span>
-            {num(project.totalClaimed)} client{Number(project.totalClaimed) === 1 ? ' has' : 's have'} already
-            claimed at the old price. Existing identities are not re-charged.
-          </span>
-        </div>
-      )}
 
       <TxDrawer
         open={drawer}
         onClose={() => { setDrawer(false); tx.reset() }}
         tx={tx}
         title="Update claim fee"
-        summary={`New claims will cost ${usd(nextNum)} in USDC.`}
-        rows={[
-          { k: 'Current fee',   v: usd(current) },
-          { k: 'New fee',       v: usd(nextNum), tone: 'accent' },
-          { k: 'Your share',    v: usd(nextNum * yourCut), tone: 'good' },
-          { k: 'Protocol share', v: usd(nextNum * protocolCut) },
-        ]}
+        summary={`New claims under ${project.slug} will cost ${usd(eff)} USDG.`}
+        rows={[{ k: 'Fee', v: `${usd(current)} → ${usd(eff)}` }, { k: 'Your share per claim', v: usd(eff * yourPct / 100) }]}
         fn="updateClaimFee(uint256,uint256)"
-        onSign={sign}
-        onDone={() => { setValue(''); refresh() }}
+        onSign={() => tx.writeContract({ address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'updateClaimFee', args: [BigInt(projectId), parseUnits(fee.trim(), 6)] })}
+        onDone={refresh}
       />
     </div>
   )

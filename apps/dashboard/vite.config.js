@@ -14,6 +14,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main:    resolve(__dirname, 'index.html'),
+        claim:   resolve(__dirname, 'claim/index.html'),
+        console: resolve(__dirname, 'console/index.html'),
         docs:    resolve(__dirname, 'docs/index.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
         terms:   resolve(__dirname, 'terms/index.html'),

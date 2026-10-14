@@ -1,58 +1,42 @@
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { modal } from './lib/wagmi'
-import Landing from './components/Landing'
-import Console from './components/Console'
-import ClaimPage from './components/ClaimPage'
+import Home from './components/Home'
+import Console, { ConnectGate } from './components/Console'
+import ClaimPage, { ClaimStart } from './components/ClaimPage'
 import LegalPage from './components/LegalPage'
 import DocsPage from './components/DocsPage'
 
 const LEGAL_ROUTES = { '/privacy': 'privacy', '/terms': 'terms', '/refunds': 'refunds' }
 
-function currentPath() {
-  return window.location.pathname.replace(/\/+$/, '') || '/'
-}
+const currentPath = () => window.location.pathname.replace(/\/+$/, '') || '/'
+
+// dashboard.rwa-id.com opens straight into the console; rwa-id.com opens the
+// site, with the console at /console. Both hosts serve this same build.
+const consoleHost = () => window.location.hostname.startsWith('dashboard.')
 
 export default function App() {
   const { address, isConnected } = useAccount()
   const [path, setPath] = useState(currentPath)
+  const [search, setSearch] = useState(window.location.search)
 
-  // Legal pages are real URLs, so keep the SPA in step with back/forward.
   useEffect(() => {
-    const onPop = () => setPath(currentPath())
+    const onPop = () => { setPath(currentPath()); setSearch(window.location.search) }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const params = new URLSearchParams(window.location.search)
-  const claimProject = params.get('claim')
-  const claimCid     = params.get('proofs')
-
-  if (claimProject && claimCid) {
-    return <ClaimPage projectId={claimProject} cid={claimCid} />
+  const params = new URLSearchParams(search)
+  if (params.get('claim') && params.get('proofs')) {
+    return <ClaimPage projectId={params.get('claim')} cid={params.get('proofs')} version={params.get('v')} />
   }
 
-  const goHome = () => {
-    window.history.pushState({}, '', '/')
-    setPath('/')
-    window.scrollTo(0, 0)
+  if (path === '/claim') return <ClaimStart />
+  if (path === '/docs') return <DocsPage />
+  if (LEGAL_ROUTES[path]) return <LegalPage doc={LEGAL_ROUTES[path]} />
+
+  if (path === '/console' || (path === '/' && consoleHost())) {
+    return isConnected ? <Console address={address} /> : <ConnectGate />
   }
 
-  // Docs are readable signed in or out, so they are matched before the wallet check.
-  if (path === '/docs') {
-    return <DocsPage onHome={goHome} onConnect={() => modal.open()} />
-  }
-
-  const legal = LEGAL_ROUTES[path]
-  if (legal) {
-    return (
-      <LegalPage doc={legal} onHome={goHome} />
-    )
-  }
-
-  if (!isConnected) {
-    return <Landing onConnect={() => modal.open()} />
-  }
-
-  return <Console address={address} />
+  return <Home />
 }

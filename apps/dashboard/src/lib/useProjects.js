@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RWAID_ADDRESS, RWAID_ABI } from './contracts'
+import { RWAID_ADDRESS, RWAID_ABI, IDENTITY_CLAIMED, MERKLE_ROOT_UPDATED, IDENTITY_REVOKED } from './contracts'
 import { readClient, getLogsChunked } from './readClient'
 import { DEFAULT_PROTOCOL_FEE_PERCENT, treasuryShare } from './format'
 
@@ -8,35 +8,13 @@ const PROJECT_FIELDS = [
   'merkleRoot', 'active', 'totalClaimed', 'totalRevenue',
 ]
 
-export const MERKLE_ROOT_UPDATED = {
-  name: 'MerkleRootUpdated', type: 'event',
-  inputs: [
-    { name: 'projectId',        type: 'uint256', indexed: true },
-    { name: 'newRoot',          type: 'bytes32', indexed: false },
-    { name: 'totalAllowlisted', type: 'uint256', indexed: false },
-  ],
-}
-
-export const IDENTITY_CLAIMED = {
-  name: 'IdentityClaimed', type: 'event',
-  inputs: [
-    { name: 'projectId', type: 'uint256', indexed: true },
-    { name: 'nameHash',  type: 'bytes32', indexed: true },
-    { name: 'claimer',   type: 'address', indexed: true },
-    { name: 'tokenId',   type: 'uint256', indexed: false },
-    { name: 'node',      type: 'bytes32', indexed: false },
-    { name: 'feePaid',   type: 'uint256', indexed: false },
-    // v3 emits the plaintext label, so activity can name the identity without
-    // fetching the proof set to reverse the hash.
-    { name: 'label',     type: 'string',  indexed: false },
-  ],
-}
-
 export function parseProject(result) {
   if (!result) return null
   const arr = Array.isArray(result) ? result : Object.values(result)
   return Object.fromEntries(PROJECT_FIELDS.map((k, i) => [k, arr[i]]))
 }
+
+const call = (functionName, args) => ({ address: RWAID_ADDRESS, abi: RWAID_ABI, functionName, args })
 
 /**
  * Loads every project owned by `address` straight from contract state.
@@ -56,29 +34,44 @@ export function useProjects(address) {
     setLogError('')
     try {
       const [nextId, protocolFeePercent] = await Promise.all([
-        readClient.readContract({
-          address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'nextProjectId',
-        }),
-        readClient.readContract({
-          address: RWAID_ADDRESS, abi: RWAID_ABI, functionName: 'protocolFeePercent',
-        }),
+        readClient.readContract(call('nextProjectId')),
+        readClient.readContract(call('protocolFeePercent')),
       ])
       setFeePercent(protocolFeePercent)
       const total = Number(nextId) - 1
       if (total <= 0) { setProjects([]); return }
 
-      const calls = Array.from({ length: total }, (_, i) => ({
-        address: RWAID_ADDRESS, abi: RWAID_ABI,
-        functionName: 'projects', args: [BigInt(i + 1)],
-      }))
-      const results = await readClient.multicall({ contracts: calls, allowFailure: true })
+      const results = await readClient.multicall({
+        contracts: Array.from({ length: total }, (_, i) => call('projects', [BigInt(i + 1)])),
+        allowFailure: true,
+      })
+      // A failed read must not quietly drop a project from the operator's list.
+      if (results.some(r => r.status !== 'success')) throw new Error('Some project reads failed — refresh to try again.')
 
       const owned = results
-        .map((r, i) => (r.result ? { id: i + 1, ...parseProject(r.result) } : null))
-        .filter(p => p && p.owner?.toLowerCase() === address.toLowerCase())
-        // totalRevenue is gross; what the treasury actually received is the
-        // platform side of the split. Screens should read treasuryRevenue.
-        .map(p => ({ ...p, treasuryRevenue: treasuryShare(p.totalRevenue, protocolFeePercent) }))
+        .map((r, i) => ({ id: i + 1, ...parseProject(r.result) }))
+        .filter(p => p.owner?.toLowerCase() === address.toLowerCase())
+
+      // v4 state per owned project: the fee actually charged, the sponsor pool and the artwork.
+      const extra = owned.length
+        ? await readClient.multicall({
+            contracts: owned.flatMap(p => [
+              call('effectiveClaimFee', [BigInt(p.id)]),
+              call('sponsorBalance', [BigInt(p.id)]),
+              call('projectImage', [BigInt(p.id)]),
+            ]),
+            allowFailure: false,
+          })
+        : []
+
+      const enriched = owned.map((p, i) => ({
+        ...p,
+        effectiveFee: extra[i * 3],
+        sponsorBalance: extra[i * 3 + 1],
+        image: extra[i * 3 + 2],
+        // totalRevenue is gross; the treasury only ever received the platform side.
+        treasuryRevenue: treasuryShare(p.totalRevenue, protocolFeePercent),
+      }))
 
       // Allowlist size only exists in the MerkleRootUpdated event, not in storage.
       // One unfiltered scan covers every project — far cheaper than a scan each.
@@ -88,16 +81,14 @@ export function useProjects(address) {
         byProject = new Map()
         for (const l of logs) {
           const id = Number(l.args.projectId)
-          const seen = byProject.get(id) ?? []
-          seen.push(l)
-          byProject.set(id, seen)
+          byProject.set(id, [...(byProject.get(id) ?? []), l])
         }
       } catch (err) {
         // Counts stay unknown rather than silently reading as zero.
         setLogError(err.message || 'Could not read contract events.')
       }
 
-      setProjects(owned.map((p) => {
+      setProjects(enriched.map((p) => {
         if (!byProject) return { ...p, allowlisted: null, rootBlock: null, rootUpdates: null }
         const logs = byProject.get(p.id) ?? []
         const last = logs[logs.length - 1]
@@ -122,36 +113,31 @@ export function useProjects(address) {
 
 /** Recent onchain activity for one project, newest first. */
 export async function fetchActivity(projectId, limit = 6) {
-  const [claims, roots] = await Promise.all([
-    getLogsChunked({ address: RWAID_ADDRESS, event: IDENTITY_CLAIMED,   args: { projectId: BigInt(projectId) } }),
-    getLogsChunked({ address: RWAID_ADDRESS, event: MERKLE_ROOT_UPDATED, args: { projectId: BigInt(projectId) } }),
+  const args = { projectId: BigInt(projectId) }
+  const [claims, roots, revokes] = await Promise.all([
+    getLogsChunked({ address: RWAID_ADDRESS, event: IDENTITY_CLAIMED, args }),
+    getLogsChunked({ address: RWAID_ADDRESS, event: MERKLE_ROOT_UPDATED, args }),
+    getLogsChunked({ address: RWAID_ADDRESS, event: IDENTITY_REVOKED, args }),
   ])
 
   const events = [
     ...claims.map(l => ({
-      kind: 'claim',
-      block: l.blockNumber,
-      hash: l.transactionHash,
-      tokenId: l.args.tokenId?.toString(),
-      claimer: l.args.claimer,
-      feePaid: l.args.feePaid,
-      label: l.args.label,
+      kind: 'claim', block: l.blockNumber, hash: l.transactionHash,
+      tokenId: l.args.tokenId?.toString(), claimer: l.args.claimer, feePaid: l.args.feePaid, label: l.args.label,
     })),
     ...roots.map(l => ({
-      kind: 'root',
-      block: l.blockNumber,
-      hash: l.transactionHash,
-      total: Number(l.args.totalAllowlisted),
+      kind: 'root', block: l.blockNumber, hash: l.transactionHash, total: Number(l.args.totalAllowlisted),
+    })),
+    ...revokes.map(l => ({
+      kind: 'revoke', block: l.blockNumber, hash: l.transactionHash, tokenId: l.args.tokenId?.toString(),
     })),
   ].sort((a, b) => Number(b.block - a.block)).slice(0, limit)
 
   // Resolve timestamps only for the handful of events we actually render.
-  const blocks = [...new Set(events.map(e => e.block))]
   const stamps = {}
-  await Promise.all(blocks.map(async (b) => {
+  await Promise.all([...new Set(events.map(e => e.block))].map(async (b) => {
     try {
-      const blk = await readClient.getBlock({ blockNumber: b })
-      stamps[b.toString()] = Number(blk.timestamp)
+      stamps[b.toString()] = Number((await readClient.getBlock({ blockNumber: b })).timestamp)
     } catch { /* timestamp is decorative — omit on failure */ }
   }))
 

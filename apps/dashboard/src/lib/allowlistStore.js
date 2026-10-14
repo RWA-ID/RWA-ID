@@ -4,11 +4,19 @@ import { findPinsByName } from './pinata'
 // stored onchain. We keep a local pointer so the console can rebuild the claim
 // link instantly, and fall back to the pinning service when this device has
 // never seen the project (a different browser, a cleared cache, a new machine).
-const key = (projectId) => `rwa-id-allowlist-${projectId}`
+// Project ids restart at 1 on every registry, so both keys carry the version:
+// v3's project #1 (mainnet) and v4's project #1 (Robinhood Chain) are different
+// namespaces and must never share a cached proof set.
+const key = (projectId) => `rwa-id-v4-allowlist-${projectId}`
 
-export const proofSetName = (slug) => `rwa-id-${slug}-allowlist`
+export const proofSetName = (slug) => `rwa-id-v4-${slug}-allowlist`
+
+// Claim links name their registry. A link without `v=4` was issued for v3 on
+// mainnet, and opening it against v4 would show a different project.
+export const REGISTRY_VERSION = '4'
 
 const IPFS_GATEWAYS = [
+  cid => `https://ipfs.onchain-id.id/ipfs/${cid}`,
   cid => `https://gateway.pinata.cloud/ipfs/${cid}`,
   cid => `https://ipfs.io/ipfs/${cid}`,
   cid => `https://dweb.link/ipfs/${cid}`,
@@ -29,7 +37,7 @@ export function loadAllowlist(projectId) {
 }
 
 export function claimUrl(projectId, cid) {
-  return `${window.location.origin}/?claim=${projectId}&proofs=${cid}`
+  return `${window.location.origin}/claim/?claim=${projectId}&proofs=${cid}&v=${REGISTRY_VERSION}`
 }
 
 const sameRoot = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase()

@@ -1,15 +1,29 @@
 {
   "chainId": 4663,
   "RWAIDv4": {
-    "address": "0xb99c4333DEb732B30D83f03cAb92fe855B21999a",
-    "deployBlock": 87774248,
-    "commit": "96c7f94",
+    "version": "4.1",
+    "address": "0x85B09167aB330641f8e5F73E2e904C75FDFa8132",
+    "deployBlock": 87872447,
+    "commit": "54e27c3",
     "deployer": "0x5f11a48230f7CdaB91A2361576239091E4b1165b",
-    "constructorArgs": ["0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "0x5f11a48230f7CdaB91A2361576239091E4b1165b"],
+    "constructorArgs": [
+      "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+      "0x5f11a48230f7CdaB91A2361576239091E4b1165b"
+    ],
     "paymentToken": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     "protocolTreasury": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
     "owner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
-    "ownerAcceptedTx": "0xff9d4bffa268d34a055adf4d2ad0962033c7d23cb546a2b0f021696cc5791d23",
-    "reservedSlugs": 36
+    "reservedSlugs": 36,
+    "ownerAcceptedTx": "0x97ab26b74ad7c8bfc391e33325c957184bfa1fbafd785a7748ec510b25e93d9e",
+    "verified": "Blockscout, full match (solc 0.8.24, runs 1, MIT)"
+  },
+  "superseded": {
+    "RWAIDv4.0": {
+      "address": "0xb99c4333DEb732B30D83f03cAb92fe855B21999a",
+      "deployBlock": 87774248,
+      "commit": "96c7f94",
+      "owner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
+      "note": "Replaced by v4.1 the same day for the relaunch NFT artwork, before any project was created. Nothing reads it."
+    }
   }
 }
