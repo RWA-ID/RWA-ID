@@ -1,0 +1,6 @@
+# Wallets and swap apps fetch the token list and logos cross-origin.
+/tokenlist.json
+  Access-Control-Allow-Origin: *
+  Content-Type: application/json; charset=utf-8
+/token/*
+  Access-Control-Allow-Origin: *

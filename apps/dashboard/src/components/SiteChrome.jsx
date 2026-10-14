@@ -46,6 +46,7 @@ export const MENUS = [
       { t: 'Whitepaper', d: 'The full design, in one document', href: WHITEPAPER },
       { t: 'Partnerships', d: CONTACT, href: `mailto:${CONTACT}` },
       { t: 'Governance', d: '2-of-3 Safe multisig', href: '/docs#governance' },
+      { t: 'RWAIDRH token', d: 'Contract, allocation and swap', href: '/#token' },
       { t: 'Terms & Privacy', d: 'The legal fine print', href: '/terms' },
     ],
   },

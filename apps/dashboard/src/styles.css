@@ -468,6 +468,26 @@ img { max-width: 100%; }
 .exhibit h3 { margin: 0; font-size: clamp(24px, 2.4vw, 30px); line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; text-wrap: pretty; }
 .exhibit .tag { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--paper); font-family: var(--f-mono); font-size: 11px; font-weight: 700; }
 .exhibit a.more { margin-top: 8px; align-self: flex-start; font-family: var(--f-mono); font-size: 12.5px; font-weight: 700; }
+
+/* ── Token (RWAIDRH) ─────────────────────────────────────────────────── */
+.token-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 20px; align-items: stretch; }
+.token-contract { box-shadow: var(--ring-lime); }
+.token-addr {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border: none; border-radius: 14px;
+  background: var(--ink); color: #fff; font-size: clamp(11px, 1.3vw, 14px); font-weight: 700; text-align: left; cursor: pointer;
+}
+.token-addr span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.token-addr b { flex: none; color: var(--lime); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.alloc-bar { display: flex; height: 18px; border-radius: 999px; overflow: hidden; box-shadow: var(--ring-ink); }
+.alloc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.alloc-list li { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
+.alloc-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.alloc-list i { flex: none; width: 12px; height: 12px; margin-top: 4px; border-radius: 3px; box-shadow: var(--ring-ink); }
+.alloc-list div { flex: 1; min-width: 0; }
+.alloc-head { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.alloc-head .mono { font-size: 12.5px; color: var(--muted); }
+.alloc-list p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.alloc-list a { color: var(--orange-deep); font-family: var(--f-mono); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .cta-band {
   position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 32px;
   overflow: hidden; border-radius: 28px; background: var(--ink); color: #fff; padding: clamp(40px, 5vw, 64px) clamp(24px, 4vw, 60px);

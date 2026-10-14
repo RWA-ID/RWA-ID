@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { RwaMark } from './Brand'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import { GITHUB, CONTACT, linkTo } from '../lib/nav'
 import { explorerAddress } from '../lib/chain'
-import { RWAID_ADDRESS } from '../lib/contracts'
+import { RWAID_ADDRESS, RWAIDRH } from '../lib/contracts'
 import RESERVED from '../lib/reserved.json'
 
 const WALLETS = [
@@ -395,6 +395,95 @@ function Standards() {
   )
 }
 
+// Read from the launch contracts (vesting start()/end(), unlock activationDeadline()).
+const ALLOCATION = [
+  { pct: 40, amount: '20B', label: 'Launch liquidity', color: 'var(--lime)', href: explorerAddress(RWAIDRH.lock),
+    body: 'Single-sided in the Uniswap v3 1% pool. The position is held by a lock contract with no withdrawal function; its trading fees go to the protocol Safe.' },
+  { pct: 20, amount: '10B', label: 'Platform buckets', color: 'var(--orange)', href: explorerAddress(RWAIDRH.platformUnlock),
+    body: 'One bucket per reserved namespace. Nothing moves until the Safe activates a bucket for the verified company; it then releases as names in that namespace are claimed, and no faster than over 24 months. Buckets not activated by 14 April 2028 can be returned.' },
+  { pct: 15, amount: '7.5B', label: 'Treasury', color: 'var(--ink)', href: explorerAddress(RWAIDRH.safe),
+    body: 'Held by the 2-of-3 protocol Safe.' },
+  { pct: 15, amount: '7.5B', label: 'Open-platform pool', color: 'var(--muted)', href: explorerAddress(RWAIDRH.safe),
+    body: 'Held by the same Safe, for platforms outside the reserved list.' },
+  { pct: 10, amount: '5B', label: 'Founder', color: 'var(--steel)', href: explorerAddress(RWAIDRH.founderVesting),
+    body: 'In a vesting contract: nothing before 14 October 2027, then released linearly until 13 October 2030.' },
+]
+
+const SWAP_URL = `https://app.uniswap.org/swap?chain=robinhood&inputCurrency=NATIVE&outputCurrency=${RWAIDRH.token}`
+const CHART_URL = `https://dexscreener.com/robinhood/${RWAIDRH.pool}`
+const GECKO_URL = `https://www.geckoterminal.com/robinhood/pools/${RWAIDRH.pool}`
+
+function Token() {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard?.writeText(RWAIDRH.token).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) }, () => {})
+  }
+
+  return (
+    <section id="token" className="section" data-screen-label="Token">
+      <div className="section-head">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <span className="kicker">RWAIDRH · Robinhood Chain</span>
+          <h2 className="h2" style={{ maxWidth: 760 }}>The RWA IDENTITY token.</h2>
+        </div>
+        <p className="body">
+          50,000,000,000 RWAIDRH, created in a single launch transaction on 14 October 2026. The token has no owner and
+          no mint function. Every allocation below sits in a contract you can read.
+        </p>
+      </div>
+
+      <div className="token-grid">
+        <div className="exhibit token-contract">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <img src="/token/rwaidrh.svg" alt="" width="48" height="48" style={{ borderRadius: '50%' }} />
+            <span className="tag"><img src="/chains/robinhood.svg" alt="" width="14" height="14" />Robinhood Chain · 4663</span>
+          </div>
+          <span className="kicker faint" style={{ fontSize: 11 }}>Contract address</span>
+          <button type="button" className="token-addr mono" onClick={copy} title="Copy address">
+            <span>{RWAIDRH.token}</span><b>{copied ? 'Copied' : 'Copy'}</b>
+          </button>
+          <div className="kv">
+            <div className="kv-row"><span>Name</span><span>RWA IDENTITY</span></div>
+            <div className="kv-row"><span>Symbol</span><span>RWAIDRH</span></div>
+            <div className="kv-row"><span>Decimals</span><span>18</span></div>
+            <div className="kv-row"><span>Pool</span><a href={explorerAddress(RWAIDRH.pool)} target="_blank" rel="noreferrer">Uniswap v3 · 1% ↗</a></div>
+          </div>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 'auto' }}>
+            <a href={SWAP_URL} target="_blank" rel="noreferrer" className="btn btn-lime">Swap on Uniswap ↗</a>
+            <a href={CHART_URL} target="_blank" rel="noreferrer" className="btn">Chart ↗</a>
+            <a href={GECKO_URL} target="_blank" rel="noreferrer" className="btn">GeckoTerminal ↗</a>
+            <a href={explorerAddress(RWAIDRH.token)} target="_blank" rel="noreferrer" className="btn">Blockscout ↗</a>
+          </div>
+        </div>
+
+        <div className="exhibit">
+          <span className="kicker faint" style={{ fontSize: 11 }}>Allocation</span>
+          <div className="alloc-bar" aria-hidden="true">
+            {ALLOCATION.map(a => <span key={a.label} style={{ flex: a.pct, background: a.color }} />)}
+          </div>
+          <ul className="alloc-list">
+            {ALLOCATION.map(a => (
+              <li key={a.label}>
+                <i style={{ background: a.color }} />
+                <div>
+                  <span className="alloc-head"><b>{a.pct}% · {a.label}</b><span className="mono">{a.amount}</span></span>
+                  <p>{a.body} <a href={a.href} target="_blank" rel="noreferrer">Contract ↗</a></p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <p className="disclaimer">
+        RWAIDRH is not needed to register, claim or resolve a name; namespace fees are paid in USDG. Holding it is not a
+        share in Only Buy Bitcoin LLC and carries no claim on its revenue. Nothing on this page is investment advice or
+        an offer to sell. Always check the contract address above before you trade.
+      </p>
+    </section>
+  )
+}
+
 function Cta() {
   return (
     <div className="inset" style={{ paddingTop: 'clamp(72px,9vw,120px)' }}>
@@ -429,6 +518,7 @@ export default function Home() {
         <ForPlatforms />
         <Reserved />
         <Standards />
+        <Token />
         <Cta />
       </main>
       <SiteFooter />

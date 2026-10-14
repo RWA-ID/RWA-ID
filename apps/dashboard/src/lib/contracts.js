@@ -12,6 +12,17 @@ export const DEPLOY_BLOCK  = 87_872_447n
 // dollar; bridged USDC arrives as USDG.
 export const USDG_ADDRESS  = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168'
 
+// RWAIDRH, launched 2026-10-14 in one transaction by RWAIDLauncher (block
+// 88065614). Recorded in protocol/deployments/robinhood.json under RWAIDRH.
+export const RWAIDRH = {
+  token: '0xdd0A628926C0C944A603eD93bca325161cD4efc6',
+  pool: '0xe03f2d01Ca196B80C1048c7FC0213322400D05D3', // Uniswap v3, 1%, WETH/RWAIDRH
+  lock: '0x91442eda74bD0d3D0965F058d74c75A6f7E1308f', // holds LP position #1442175
+  founderVesting: '0x0A048950f66C14b517DF6B02F04f8db2d9F9f91d',
+  platformUnlock: '0x6709D7b104B7283fac92DBbD9AFbd90Af7c233F0',
+  safe: '0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab',
+}
+
 export const ERC20_ABI = [
   { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
   { name: 'allowance', type: 'function', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },

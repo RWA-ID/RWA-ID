@@ -61,6 +61,10 @@
     "founderVesting": "0x0A048950f66C14b517DF6B02F04f8db2d9F9f91d",
     "platformUnlock": "0x6709D7b104B7283fac92DBbD9AFbd90Af7c233F0",
     "ethUsdAtLaunch": 2510.362859,
+    "platformUnlockOwner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
+    "platformUnlockOwnerAcceptedNote": "Safe acceptOwnership() executed 2026-10-14; owner()=Safe, pendingOwner()=0 verified on-chain",
+    "logo": "https://rwa-id.com/token/rwaidrh-256.png",
+    "tokenList": "https://rwa-id.com/tokenlist.json",
     "params": {
       "name": "RWA IDENTITY",
       "symbol": "RWAIDRH",
