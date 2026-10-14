@@ -220,8 +220,9 @@ export default function ClaimPage({ projectId, cid, version }) {
           meta={`${tokenId ? `token #${tokenId} · ` : ''}held by ${shortAddress(address)}`} />
         <div className="claim-pitch" style={{ gap: 20 }}>
           <span className="pill lime ring" style={{ alignSelf: 'flex-start' }}>✓ It’s yours</span>
-          <h1 className="claim-h1" style={{ fontSize: 'clamp(36px,4.8vw,68px)', overflowWrap: 'anywhere' }}>
-            {name ? <>{name}.{slug}<br />.rwa-id.eth</> : full}
+          {/* Sized to fit the column on one line (~0.52em per condensed caps glyph); wraps only below the 28px floor. */}
+          <h1 className="claim-h1" style={{ fontSize: `max(28px, min(68px, calc(100cqi / ${(full.length * 0.52).toFixed(2)})))`, overflowWrap: 'anywhere' }}>
+            {full}
           </h1>
           <p className="lede" style={{ fontSize: 17 }}>
             It’s live and held by {shortAddress(address)}. Try it in any ENS-aware wallet: type the name where you’d
