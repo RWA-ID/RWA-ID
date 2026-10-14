@@ -216,8 +216,9 @@ allowlist and pay the gas itself; clients never sign anything.
 |---|---|
 | `Invalid proof` | Name or wallet does not match the published root |
 | `Already claimed` | That wallet already holds a name in this project (one per project) |
+| `Node already claimed` | Another wallet already holds that label |
 | `Name revoked` | The label was retired by the platform |
-| `Project paused` | Claiming is switched off |
+| `Project not active` | The platform has paused claiming |
 
 ---
 

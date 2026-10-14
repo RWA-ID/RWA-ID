@@ -297,7 +297,9 @@ img { max-width: 100%; }
 .live-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 1.5px var(--ink); }
 .site-actions .btn { height: 42px; padding: 0 18px; }
 .menu-btn { display: none; }
-.mega { position: absolute; left: 0; right: 0; top: 84px; padding: 0 16px; }
+/* Flush with the header (76px) with the 8px gap as padding: a real gap is outside the
+   wrap, so crossing it fires onMouseLeave and closes the menu before the pointer lands. */
+.mega { position: absolute; left: 0; right: 0; top: 76px; padding: 8px 16px 0; }
 .mega-inner {
   max-width: 1408px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 16px; padding: 20px; border-radius: 24px; background: #fff; box-shadow: var(--shadow-menu);
