@@ -167,7 +167,7 @@ export function SiteFooter() {
         </div>
         <p className="foot-tag">Identity infrastructure for the tokenized economy</p>
         <p className="foot-legal">
-          Registry <a href={explorerAddress(RWAID_ADDRESS)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{RWAID_ADDRESS}</a> on
+          © {new Date().getFullYear()} Only Buy Bitcoin LLC, doing business as RWA ID. Registry <a href={explorerAddress(RWAID_ADDRESS)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{RWAID_ADDRESS}</a> on
           Robinhood Chain. RWA ID is not affiliated with Robinhood Markets, Inc. or any company named on this site.
         </p>
         <div className="foot-giant" aria-hidden="true">

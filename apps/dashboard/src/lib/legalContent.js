@@ -2,7 +2,14 @@
 // NOTE: these are operator-drafted policies, not legal advice. The entity name,
 // jurisdiction and contact address below must be confirmed by counsel before launch.
 
-export const LEGAL_ENTITY   = 'RWA-ID Labs'
+export const LEGAL_ENTITY   = 'Only Buy Bitcoin LLC'
+// How the operator is named in running text and in the page footer.
+export const LEGAL_ENTITY_DBA = 'Only Buy Bitcoin LLC, doing business as RWA ID'
+// The LLC will be renamed; the notice keeps that from reading as a change of party.
+export const LEGAL_RENAME_NOTE =
+  'Only Buy Bitcoin LLC intends to change its legal name in the future. A change of name will not change ' +
+  'the legal entity, and these policies and any rights or obligations under them will continue to apply ' +
+  'to it under its new name. We will update this page when the change takes effect.'
 export const LEGAL_CONTACT  = 'partner@rwa-id.com'
 export const LEGAL_UPDATED  = '13 October 2026'
 export const LEGAL_JURISDICTION = 'the Republic of Panama'
@@ -16,7 +23,8 @@ export const LEGAL_DOCS = {
       {
         h: '1. Who we are',
         p: [
-          `${LEGAL_ENTITY} builds and maintains the RWA-ID protocol and this console. The console is a static web application that talks directly to Robinhood Chain (an Ethereum layer-2 network), to Ethereum for name resolution, and to IPFS. It has no backend server, no database and no user accounts.`,
+          `RWA ID is operated by ${LEGAL_ENTITY}, a Delaware limited liability company doing business as RWA ID (“we”, “us”). We build and maintain the RWA ID protocol and this console. The console is a static web application that talks directly to Robinhood Chain (an Ethereum layer-2 network), to Ethereum for name resolution, and to IPFS. It has no backend server, no database and no user accounts.`,
+          LEGAL_RENAME_NOTE,
         ],
       },
       {
@@ -83,7 +91,8 @@ export const LEGAL_DOCS = {
       {
         h: '1. Agreement',
         p: [
-          `By connecting a wallet to this console or otherwise interacting with the RWA-ID smart contracts, you agree to these terms. If you do not agree, do not use the console. These terms are between you and ${LEGAL_ENTITY}.`,
+          `By connecting a wallet to this console or otherwise interacting with the RWA-ID smart contracts, you agree to these terms. If you do not agree, do not use the console. These terms are between you and ${LEGAL_ENTITY}, a Delaware limited liability company doing business as RWA ID.`,
+          LEGAL_RENAME_NOTE,
         ],
       },
       {

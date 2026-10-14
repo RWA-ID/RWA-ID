@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { LEGAL_CONTACT, LEGAL_DOCS, LEGAL_ENTITY, LEGAL_ORDER, LEGAL_UPDATED } from '../lib/legalContent'
+import { LEGAL_CONTACT, LEGAL_DOCS, LEGAL_ENTITY_DBA, LEGAL_ORDER, LEGAL_UPDATED } from '../lib/legalContent'
 import { RWAID_ADDRESS } from '../lib/contracts'
 import { explorerAddress } from '../lib/chain'
 import { linkTo } from '../lib/nav'
@@ -32,7 +32,7 @@ export default function LegalPage({ doc }) {
             </section>
           ))}
           <p className="meta" style={{ marginTop: 40 }}>
-            {LEGAL_ENTITY} · <a href={`mailto:${LEGAL_CONTACT}`}>{LEGAL_CONTACT}</a> · registry{' '}
+            {LEGAL_ENTITY_DBA} · <a href={`mailto:${LEGAL_CONTACT}`}>{LEGAL_CONTACT}</a> · registry{' '}
             <a href={explorerAddress(RWAID_ADDRESS)} target="_blank" rel="noreferrer">{RWAID_ADDRESS}</a> on Robinhood Chain
           </p>
         </article>
