@@ -19,6 +19,11 @@ export function linkTo(e) {
   navigate(href)
 }
 
+// dashboard.rwa-id.com serves the console at "/", so a "home" link there must
+// leave the host; on rwa-id.com itself it stays in-app.
+export const isConsoleHost = () => typeof window !== 'undefined' && window.location.hostname.startsWith('dashboard.')
+export const siteHome = () => (isConsoleHost() ? 'https://rwa-id.com/' : '/')
+
 export const GITHUB = 'https://github.com/RWA-ID/RWA-ID'
 export const WHITEPAPER = 'https://github.com/RWA-ID/RWA-ID/blob/main/whitepaper.md'
 export const CONTACT = 'partner@rwa-id.com'

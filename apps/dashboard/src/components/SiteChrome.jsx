@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Lockup, RwaMark } from './Brand'
-import { CONTACT, GITHUB, WHITEPAPER, X_URL, linkTo } from '../lib/nav'
+import { CONTACT, GITHUB, WHITEPAPER, X_URL, linkTo, siteHome } from '../lib/nav'
 import { RWAID_ADDRESS } from '../lib/contracts'
 import { explorerAddress } from '../lib/chain'
 
@@ -70,7 +70,7 @@ export function SiteHeader() {
     <div className="site-head-wrap" onMouseLeave={() => setOpen(null)}>
       <header className="site-head">
         <div className="site-head-inner">
-          <Lockup href="/" onClick={go} />
+          <Lockup href={siteHome()} onClick={go} />
           <nav className="site-nav" aria-label="Main">
             {MENUS.map(m => (
               <button

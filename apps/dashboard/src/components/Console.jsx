@@ -5,8 +5,8 @@ import { RWAID_ADDRESS } from '../lib/contracts'
 import { ROBINHOOD_CHAIN_ID, explorerAddress } from '../lib/chain'
 import { useProjects } from '../lib/useProjects'
 import { initials, shortAddress } from '../lib/format'
-import { linkTo } from '../lib/nav'
-import { RwaMark, Wordmark, Lockup } from './Brand'
+import { linkTo, siteHome } from '../lib/nav'
+import { RwaMark, Wordmark } from './Brand'
 
 import ProjectsScreen from './screens/ProjectsScreen'
 import CreateProject from './screens/CreateProject'
@@ -44,27 +44,7 @@ const SCREENS = {
   registry: RegistryScreen, ownership: OwnershipScreen,
 }
 
-/** Signed-out console: one card, one button. */
-export function ConnectGate() {
-  useEffect(() => { document.title = 'Console · RWA ID' }, [])
-  return (
-    <div className="claim">
-      <header className="claim-head"><Lockup href="/" onClick={linkTo} size={26} word={16} /><span className="ns">Console</span></header>
-      <main className="claim-main">
-        <div className="claim-notice" style={{ maxWidth: 620 }}>
-          <span className="sq" style={{ background: 'var(--lime)' }}><RwaMark size={34} tone="light" /></span>
-          <h1 className="display">Open the console</h1>
-          <p className="lede" style={{ fontSize: 16 }}>
-            Connect the wallet that owns your namespace, or the one you want to register it with. Everything here is
-            read from and written to Robinhood Chain; there is no account to create.
-          </p>
-          <button className="btn btn-ink btn-lg" style={{ color: 'var(--lime)' }} onClick={() => modal.open()}>Connect wallet →</button>
-          <a href="/" onClick={linkTo} className="meta">← Back to rwa-id.com</a>
-        </div>
-      </main>
-    </div>
-  )
-}
+export { default as ConnectGate } from './ConnectScreen'
 
 export default function Console({ address }) {
   const { disconnect } = useDisconnect()
@@ -131,7 +111,7 @@ export default function Console({ address }) {
     <div className="console">
       <aside className={`side${sideOpen ? ' open' : ''}`}>
         <div className="side-top">
-          <a href="/" onClick={linkTo} className="side-brand">
+          <a href={siteHome()} onClick={linkTo} className="side-brand">
             <RwaMark size={26} tone="dark" /><Wordmark size={16} /><span className="tag">CONSOLE</span>
           </a>
           <button className="switch" onClick={() => (projects.length ? setSwitching(s => !s) : go('create', null))}>

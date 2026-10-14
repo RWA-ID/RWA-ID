@@ -174,7 +174,7 @@ function Standard() {
               <span className="mono" style={{ marginTop: 'auto', height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--ink)', color: 'var(--lime)', fontSize: 12, fontWeight: 700 }}>Access granted →</span>
             </div>
           </div>
-          <div className="gate">
+          <div className="gate-row">
             <span className="kicker faint" style={{ padding: 0, boxShadow: 'none', marginRight: 4, fontSize: 11 }}>Gate with it</span>
             {['Investor portals', 'Fund subscriptions', 'Token transfer allowlists', 'Token-gated sign-in', 'Airdrops & distributions'].map(g => <span key={g}>{g}</span>)}
           </div>
