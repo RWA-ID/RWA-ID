@@ -7,7 +7,7 @@ import { ROBINHOOD_CHAIN_ID, explorerTx, explorerToken } from '../lib/chain'
 import { parseProject } from '../lib/useProjects'
 import { fetchProofSet, REGISTRY_VERSION } from '../lib/allowlistStore'
 import { errorText, shortAddress, usd } from '../lib/format'
-import { linkTo, navigate } from '../lib/nav'
+import { linkTo, navigate, siteHome } from '../lib/nav'
 import { useTx } from './TxDrawer'
 import { Lockup, RwaMark } from './Brand'
 
@@ -19,7 +19,7 @@ function Shell({ slug, address, onDisconnect, children }) {
   return (
     <div className="claim">
       <header className="claim-head">
-        <Lockup href="/" onClick={linkTo} size={26} word={16} />
+        <Lockup href={siteHome()} onClick={linkTo} size={26} word={16} />
         {slug && <span className="ns">{slug}.rwa-id.eth</span>}
         {address && <button className="btn" onClick={onDisconnect}>{shortAddress(address)} · Disconnect</button>}
       </header>

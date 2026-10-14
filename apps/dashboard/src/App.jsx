@@ -5,6 +5,7 @@ import Console, { ConnectGate } from './components/Console'
 import ClaimPage, { ClaimStart } from './components/ClaimPage'
 import LegalPage from './components/LegalPage'
 import DocsPage from './components/DocsPage'
+import { isConsoleHost } from './lib/nav'
 
 const LEGAL_ROUTES = { '/privacy': 'privacy', '/terms': 'terms', '/refunds': 'refunds' }
 
@@ -12,7 +13,6 @@ const currentPath = () => window.location.pathname.replace(/\/+$/, '') || '/'
 
 // dashboard.rwa-id.com opens straight into the console; rwa-id.com opens the
 // site, with the console at /console. Both hosts serve this same build.
-const consoleHost = () => window.location.hostname.startsWith('dashboard.')
 
 export default function App() {
   const { address, isConnected } = useAccount()
@@ -34,7 +34,7 @@ export default function App() {
   if (path === '/docs') return <DocsPage />
   if (LEGAL_ROUTES[path]) return <LegalPage doc={LEGAL_ROUTES[path]} />
 
-  if (path === '/console' || (path === '/' && consoleHost())) {
+  if (path === '/console' || (path === '/' && isConsoleHost())) {
     return isConnected ? <Console address={address} /> : <ConnectGate />
   }
 
