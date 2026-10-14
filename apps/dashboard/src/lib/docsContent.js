@@ -10,10 +10,10 @@
 //   dl    — [term, definition][]
 //   note  — { tone: 'info' | 'warn', text }
 
-import { RWAID_ADDRESS, USDG_ADDRESS, RECORDS_ADDRESS } from './contracts'
+import { RWAID_ADDRESS, USDG_ADDRESS, RECORDS_ADDRESS, RWAIDRH } from './contracts'
 
 export const DOCS_VERSION = 'v4.1'
-export const DOCS_UPDATED = '13 October 2026'
+export const DOCS_UPDATED = '14 October 2026'
 
 export const RESOLVER_ADDRESS = '0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0'
 export const LEGACY_RESOLVER  = '0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1'
@@ -64,14 +64,19 @@ export const DOCS_SECTIONS = [
           ['Gateway signer', SIGNER_ADDRESS, 'The key the resolver trusts for gateway answers'],
           ['Wildcard resolver V2 (retired)', LEGACY_RESOLVER, 'Ethereum · rwa-id.eth’s resolver until 13 Oct 2026'],
           ['RWAIDv3 (legacy)', V3_ADDRESS, 'Ethereum · the 2026-08 registry; its names still resolve'],
+          ['RWAIDRH token', RWAIDRH.token, 'Robinhood Chain · RWA IDENTITY, 50B fixed supply, no owner, no mint'],
+          ['RWAIDLiquidityLock', RWAIDRH.lock, 'Robinhood Chain · holds LP position #1442175 forever; fees go to the Safe'],
+          ['RWAIDPlatformUnlock', RWAIDRH.platformUnlock, 'Robinhood Chain · 36 platform token buckets, earned by claims. Owned by the Safe'],
+          ['Founder VestingWallet', RWAIDRH.founderVesting, 'Robinhood Chain · OpenZeppelin VestingWallet, 14 Oct 2027 → 13 Oct 2030'],
+          ['Uniswap v3 pool', RWAIDRH.pool, 'Robinhood Chain · WETH / RWAIDRH, 1% fee tier'],
         ],
       },
       {
         t: 'note',
         tone: 'info',
         text:
-          'All addresses are also in protocol/deployments/robinhood.json in the repository. The registry source is ' +
-          'verified on Blockscout.',
+          'All addresses are also in protocol/deployments/robinhood.json in the repository. Every contract is ' +
+          'verified on Blockscout or Etherscan.',
       },
     ],
   },
@@ -215,7 +220,7 @@ export const DOCS_SECTIONS = [
           ['Fee', 'Set per project in USDG. The contract charges max(your fee, 0.50 USDG). Change it any time with updateClaimFee; effectiveClaimFee(projectId) returns what a claim costs now.'],
           ['Sponsor pool', 'fundSponsorship(projectId, amount) moves USDG into the project’s pool; anyone can fund it, only the project owner can withdraw. If the pool holds at least one full fee, the pool pays and the claimer pays nothing; otherwise whoever sends the transaction pays.'],
           ['Split', '70% to your treasury and 30% to the protocol treasury, transferred directly. The contract never escrows fees; only sponsor pools are held.'],
-          ['Failure modes', '“Invalid proof”: the name or wallet does not match the published root. “Already claimed”: that wallet holds a name in this project. “Name revoked”: the name is permanently retired. “Project paused”: claiming is off.'],
+          ['Failure modes', '“Invalid proof”: the name or wallet does not match the published root. “Already claimed”: that wallet holds a name in this project. “Node already claimed”: another wallet holds that name. “Name revoked”: the name is permanently retired. “Project not active”: the project is paused.'],
         ],
       },
     ],
@@ -312,11 +317,45 @@ export const DOCS_SECTIONS = [
       {
         t: 'dl',
         items: [
-          ['Protocol owner', `A 2-of-3 Safe at ${SAFE_ADDRESS} owns the registry and receives the protocol share. It can reserve namespaces, adjust the protocol fee within its 10–50% bounds, and set the protocol treasury.`],
-          ['What the protocol cannot do', 'It cannot mint, transfer or revoke your clients’ names, cannot move your treasury’s funds or your sponsor pool, and cannot change your project’s fee or allowlist.'],
+          ['Protocol owner', `A 2-of-3 Safe at ${SAFE_ADDRESS} owns the registry, the resolver and RWAIDPlatformUnlock, and receives the protocol share. It can reserve namespaces, adjust the protocol fee within its 10–50% bounds, set the protocol treasury, and rotate the gateway signer.`],
+          ['What the protocol cannot do', 'It cannot mint, transfer or revoke your clients’ names, cannot move your treasury’s funds or your sponsor pool, and cannot change your project’s fee or allowlist. It cannot withdraw the locked liquidity or mint RWAIDRH.'],
           ['What you control', 'Your project’s fee, treasury, allowlist, sponsor pool, artwork, transferability, pause state, revocations and ownership, each a signed transaction from the project owner.'],
           ['Audit status', 'The contracts are verified on Blockscout and covered by an extensive test suite, including fuzzing against the ENS normalizer. No third-party audit has been published yet.'],
         ],
+      },
+    ],
+  },
+  {
+    id: 'token',
+    title: 'The RWAIDRH token',
+    lede: 'RWA IDENTITY (RWAIDRH) launched on Robinhood Chain on 14 October 2026. Nothing in RWA ID requires it: fees are paid in USDG.',
+    blocks: [
+      {
+        t: 'table',
+        head: ['Share', 'Held by', 'Terms'],
+        rows: [
+          ['40% · 20B', 'Uniswap v3 position in RWAIDLiquidityLock', 'Launch liquidity, locked permanently'],
+          ['20% · 10B', 'RWAIDPlatformUnlock', 'One bucket per reserved namespace, earned by claims'],
+          ['15% · 7.5B', 'Protocol Safe', 'Treasury'],
+          ['15% · 7.5B', 'Protocol Safe', 'Open-platform pool, for platforms outside the reserved list'],
+          ['10% · 5B', 'Founder VestingWallet', 'Nothing before 14 Oct 2027, then linear to 13 Oct 2030'],
+        ],
+      },
+      {
+        t: 'dl',
+        items: [
+          ['Launch', 'One transaction created the token, the pool, its opening price and the locked liquidity, so nobody could front-run the pool or its price. The token has no owner and no mint function.'],
+          ['Locked liquidity', 'The lock has no withdraw function and no owner. Anyone can call collect(1442175); trading fees always go to the protocol Safe.'],
+          ['Platform buckets', 'Each reserved namespace has a bucket of about 277.8M RWAIDRH, paid to the project’s current owner. After the Safe activates it for the verified company, release(slug) pays the smaller of: claims since activation ÷ 10,000, and time since activation ÷ 730 days.'],
+          ['Exits', 'The Safe can cancel only the unearned part of an activated bucket, and sweep buckets nobody activated by 14 April 2028.'],
+        ],
+      },
+      {
+        t: 'note',
+        tone: 'warn',
+        text:
+          'RWAIDRH is not a share in the company and carries no claim on its revenue. Nothing here is investment ' +
+          'advice. Check the contract address before you trade.',
       },
     ],
   },
