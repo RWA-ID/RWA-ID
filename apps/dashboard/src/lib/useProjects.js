@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RWAID_ADDRESS, RWAID_ABI, IDENTITY_CLAIMED, MERKLE_ROOT_UPDATED, IDENTITY_REVOKED } from './contracts'
 import { readClient, getLogsChunked } from './readClient'
 import { DEFAULT_PROTOCOL_FEE_PERCENT, treasuryShare } from './format'
+import { useRefetchOnFocus } from './useRefetchOnFocus'
 
 const PROJECT_FIELDS = [
   'owner', 'slug', 'slugHash', 'treasury', 'claimFee', 'transferable',
@@ -27,11 +28,14 @@ export function useProjects(address) {
   const [logError, setLogError] = useState('')
   const [feePercent, setFeePercent] = useState(DEFAULT_PROTOCOL_FEE_PERCENT)
 
-  const load = useCallback(async () => {
+  // `silent` refreshes in place: no loading state, and a failure keeps the figures already shown.
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (!address) { setProjects([]); setLoading(false); return }
-    setLoading(true)
-    setError('')
-    setLogError('')
+    if (!silent) {
+      setLoading(true)
+      setError('')
+      setLogError('')
+    }
     try {
       const [nextId, protocolFeePercent] = await Promise.all([
         readClient.readContract(call('nextProjectId')),
@@ -100,13 +104,14 @@ export function useProjects(address) {
         }
       }))
     } catch (err) {
-      setError(err.shortMessage || err.message || 'Failed to load projects')
+      if (!silent) setError(err.shortMessage || err.message || 'Failed to load projects')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [address])
 
   useEffect(() => { load() }, [load])
+  useRefetchOnFocus(() => load({ silent: true }))
 
   return { projects, loading, error, logError, protocolFeePercent: feePercent, reload: load }
 }

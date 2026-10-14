@@ -690,7 +690,7 @@ img { max-width: 100%; }
 .claim-main { flex: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: clamp(32px, 6vw, 80px) clamp(16px, 3vw, 36px); }
 .claim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(32px, 5vw, 72px); align-items: start; }
 .claim-grid.center { align-items: center; }
-.claim-pitch { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+.claim-pitch { display: flex; flex-direction: column; gap: 26px; min-width: 0; container-type: inline-size; }
 .claim-h1 { margin: 0; font-weight: 800; font-stretch: 70%; font-size: clamp(48px, 6vw, 84px); line-height: .86; letter-spacing: -0.01em; text-transform: uppercase; }
 .claim-h1 mark { background: var(--lime); color: var(--ink); padding: 0 .08em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .utility { border-top: 1px solid var(--line); }

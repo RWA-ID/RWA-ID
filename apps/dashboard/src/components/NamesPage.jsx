@@ -6,6 +6,7 @@ import { RWAID_ADDRESS, RWAID_ABI, RECORDS_ADDRESS, RECORDS_ABI, TRANSFER_EVENT 
 import { explorerAddress, explorerToken } from '../lib/chain'
 import { readClient, getLogsChunked } from '../lib/readClient'
 import { errorText, shortAddress } from '../lib/format'
+import { useRefetchOnFocus } from '../lib/useRefetchOnFocus'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import TxDrawer, { useTx } from './TxDrawer'
 
@@ -172,6 +173,11 @@ export default function NamesPage() {
     loadNames(address).then(n => { if (!cancelled) setNames(n) }).catch(e => { if (!cancelled) setError(errorText(e)) })
     return () => { cancelled = true }
   }, [address])
+  // Back from claiming in another tab: re-read quietly, keeping the list on a failed read.
+  useRefetchOnFocus(() => {
+    if (!address) return
+    loadNames(address).then(n => { if (n.length !== names?.length || n.some((x, i) => x.tokenId !== names[i].tokenId)) setNames(n) }).catch(() => {})
+  })
 
   return (
     <>

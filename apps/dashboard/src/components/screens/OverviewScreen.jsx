@@ -18,7 +18,8 @@ export default function OverviewScreen({ project, projectId, go, protocolFeePerc
       .then(rows => { if (!cancelled) setActivity(rows) })
       .catch(err => { if (!cancelled) { setActivity([]); setActivityError(err.message || 'Could not read contract events.') } })
     return () => { cancelled = true }
-  }, [projectId])
+    // totalClaimed: a background project refresh that sees a new claim re-reads the feed too.
+  }, [projectId, project.totalClaimed])
 
   const claimed = Number(project.totalClaimed)
   const allowlisted = project.allowlisted
