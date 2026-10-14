@@ -33,6 +33,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mainnet } from "viem/chains";
+import { handleOffchain, RESOLVE_SELECTOR } from "./offchain.js";
 
 const robinhood = {
   id: 4663,
@@ -96,7 +97,16 @@ function setup(env) {
       { version: "v3", address: v3, client: createPublicClient({ chain: mainnet, transport: transport(l1Urls) }) },
     ],
     rpcCount: { robinhood: rhUrls.length, mainnet: l1Urls.length },
+    // RwaIdOffchainResolver: its own signer, its own address, and the records contract.
+    // Optional, so the legacy path keeps working before and during the cutover.
+    offchain: null,
+    records: isAddress((env.RECORDS_ADDRESS || "").trim()) ? env.RECORDS_ADDRESS.trim() : null,
   };
+  const v2key = (env.GATEWAY_V2_SIGNER_PRIVATE_KEY || "").trim();
+  const resolver = (env.OFFCHAIN_RESOLVER || "").trim();
+  if (v2key && isAddress(resolver)) {
+    cached.offchain = { account: privateKeyToAccount(v2key.startsWith("0x") ? v2key : `0x${v2key}`), resolver };
+  }
   return cached;
 }
 
@@ -202,7 +212,8 @@ async function route(request, env) {
       }
     }
     const ok = Object.values(chains).every((c) => !c.error);
-    return json({ ok, signer: ctx.account.address, registries: chains, rpcs: ctx.rpcCount }, ok ? 200 : 503, NO_STORE);
+    const offchain = ctx.offchain ? { resolver: ctx.offchain.resolver, signer: ctx.offchain.account.address, records: ctx.records } : null;
+    return json({ ok, signer: ctx.account.address, registries: chains, offchain, rpcs: ctx.rpcCount }, ok ? 200 : 503, NO_STORE);
   }
 
   // Debug read: what the gateway would sign for a name.
@@ -231,8 +242,19 @@ async function route(request, env) {
   }
 
   // EIP-3668: GET /{sender}/{data}.json, or POST with {sender, data} in the body.
+  // Two resolvers share this endpoint during the cutover. RwaIdOffchainResolver's
+  // callData is resolve(bytes,bytes) and starts with its selector; the legacy
+  // wildcard resolver's is a bare abi.encode(bytes,bytes).
+  const dispatch = async (sender, data) => {
+    const hex = data.startsWith("0x") ? data : `0x${data}`;
+    if (hex.toLowerCase().startsWith(RESOLVE_SELECTOR)) {
+      const encoded = await handleOffchain(ctx, sender, hex, dnsDecode, (s, msg) => new HttpError(s, msg));
+      return json({ data: encoded }, 200, NO_STORE);
+    }
+    return handleCcipRead(ctx, hex);
+  };
   const m = path.match(/^\/(0x[0-9a-fA-F]{40})\/(0x[0-9a-fA-F]*)(?:\.json)?$/);
-  if (m && request.method === "GET") return handleCcipRead(ctx, m[2]);
+  if (m && request.method === "GET") return dispatch(m[1], m[2]);
   if (request.method === "POST") {
     let body;
     try {
@@ -241,7 +263,8 @@ async function route(request, env) {
       throw new HttpError(400, "Expected JSON body");
     }
     if (typeof body?.data !== "string" || !/^0x[0-9a-fA-F]*$/.test(body.data)) throw new HttpError(400, "Missing data");
-    return handleCcipRead(ctx, body.data);
+    if (typeof body?.sender !== "string" || !isAddress(body.sender)) throw new HttpError(400, "Missing sender");
+    return dispatch(body.sender, body.data);
   }
 
   throw new HttpError(404, "Not found");

@@ -77,8 +77,9 @@ module.exports = {
   },
 
   etherscan: {
-    // Blockscout ignores the key but hardhat-verify wants one per custom chain.
-    apiKey: { mainnet: ETHERSCAN_API_KEY || "", sepolia: ETHERSCAN_API_KEY || "", robinhood: "blockscout" },
+    // One Etherscan V2 key covers every Etherscan chain (V1 per-network keys are
+    // retired). Blockscout, used for Robinhood Chain below, ignores the key.
+    apiKey: ETHERSCAN_API_KEY || "blockscout",
     customChains: [
       {
         network: "robinhood",

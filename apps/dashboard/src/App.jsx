@@ -5,6 +5,7 @@ import Console, { ConnectGate } from './components/Console'
 import ClaimPage, { ClaimStart } from './components/ClaimPage'
 import LegalPage from './components/LegalPage'
 import DocsPage from './components/DocsPage'
+import NamesPage from './components/NamesPage'
 import { isConsoleHost } from './lib/nav'
 
 const LEGAL_ROUTES = { '/privacy': 'privacy', '/terms': 'terms', '/refunds': 'refunds' }
@@ -32,6 +33,7 @@ export default function App() {
 
   if (path === '/claim') return <ClaimStart />
   if (path === '/docs') return <DocsPage />
+  if (path === '/names') return <NamesPage />
   if (LEGAL_ROUTES[path]) return <LegalPage doc={LEGAL_ROUTES[path]} />
 
   if (path === '/console' || (path === '/' && isConsoleHost())) {

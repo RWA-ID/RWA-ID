@@ -16,6 +16,7 @@ export default defineConfig({
         main:    resolve(__dirname, 'index.html'),
         claim:   resolve(__dirname, 'claim/index.html'),
         console: resolve(__dirname, 'console/index.html'),
+        names:   resolve(__dirname, 'names/index.html'),
         docs:    resolve(__dirname, 'docs/index.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
         terms:   resolve(__dirname, 'terms/index.html'),

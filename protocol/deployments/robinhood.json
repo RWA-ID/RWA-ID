@@ -25,5 +25,27 @@
       "owner": "0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab",
       "note": "Replaced by v4.1 the same day for the relaunch NFT artwork, before any project was created. Nothing reads it."
     }
+  },
+  "RWAIDRecords": {
+    "address": "0xb209023C4C4D5c997dEb6A2E672374e358182F37",
+    "deployBlock": 87996011,
+    "commit": "f5616d7",
+    "registry": "0x85B09167aB330641f8e5F73E2e904C75FDFa8132",
+    "owner": "none (ownerless)"
+  },
+  "ethereum": {
+    "RwaIdOffchainResolver": {
+      "address": "0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0",
+      "deployBlock": 26187634,
+      "commit": "f5616d7",
+      "signer": "0xDF8E6a113f98586608C3D7a4eab68a35A97602Af",
+      "owner": "pending: Safe 0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab must call acceptOwnership() on Ethereum",
+      "verified": "Etherscan",
+      "rwaIdEthResolverSince": "2026-10-13, block 26187657, tx 0xc37b388620773875d6434ef7de3621e97eb808ac640455b01ca0365df355968f"
+    },
+    "RwaIdWildcardResolverV2": {
+      "address": "0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1",
+      "status": "retired as rwa-id.eth's resolver 2026-10-13"
+    }
   }
 }

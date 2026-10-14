@@ -18,6 +18,7 @@ export const PAGES = [
   { path: '', card: 'home', title: 'RWA ID — One name, every client', description: 'Give every client wallet on your tokenized-asset platform a readable ENS name like joe.yourplatform.rwa-id.eth. Free namespaces, live on Robinhood Chain. No KYC, no PII.' },
   { path: 'claim', card: 'claim', title: 'Claim your name · RWA ID', description: 'Your platform reserved a readable ENS name for your wallet. Connect the wallet they allowlisted and claim it in one step.' },
   { path: 'console', card: 'console', title: 'Console · RWA ID', description: 'Register your namespace, publish allowlists, sponsor claims and set your NFT artwork. Free to create on Robinhood Chain.' },
+  { path: 'names', card: 'claim', title: 'My names · RWA ID', description: 'Point your RWA ID name at your Bitcoin, Solana and other addresses, and add profile details every ENS-aware wallet shows.' },
   { path: 'docs', card: 'docs', title: 'Docs · RWA ID v4.1', description: 'How to issue, resolve and administer RWA ID names: namespaces, Merkle allowlists, USDG fees and sponsorship, on-chain identity NFTs and ENS resolution.' },
   { path: 'terms', card: 'terms', title: 'Terms of Service · RWA ID', description: 'The terms for using RWA ID and its contracts on Robinhood Chain.' },
   { path: 'privacy', card: 'privacy', title: 'Privacy Policy · RWA ID', description: 'What RWA ID does and does not collect: no accounts, no tracking, and no server that stores your data.' },

@@ -10,14 +10,15 @@
 //   dl    — [term, definition][]
 //   note  — { tone: 'info' | 'warn', text }
 
-import { RWAID_ADDRESS, USDG_ADDRESS } from './contracts'
+import { RWAID_ADDRESS, USDG_ADDRESS, RECORDS_ADDRESS } from './contracts'
 
 export const DOCS_VERSION = 'v4.1'
 export const DOCS_UPDATED = '13 October 2026'
 
-export const RESOLVER_ADDRESS = '0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1'
+export const RESOLVER_ADDRESS = '0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0'
+export const LEGACY_RESOLVER  = '0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1'
 export const SAFE_ADDRESS     = '0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab'
-export const SIGNER_ADDRESS   = '0xC9fACcf3a77b553375017efFEe441D9770fAA723'
+export const SIGNER_ADDRESS   = '0xDF8E6a113f98586608C3D7a4eab68a35A97602Af'
 export const V3_ADDRESS       = '0x6413e9E6A0D4e05557463A66C34E18192324A2C7'
 export const GATEWAY_ORIGIN   = 'https://gateway.rwa-id.com'
 
@@ -58,8 +59,10 @@ export const DOCS_SECTIONS = [
           ['RWAIDv4.1', RWAID_ADDRESS, 'Robinhood Chain · registry, identity NFTs, fees, sponsor pools'],
           ['USDG', USDG_ADDRESS, 'Robinhood Chain · claim fee token (Paxos, 6 decimals)'],
           ['Protocol Safe', SAFE_ADDRESS, 'Both chains · registry owner and protocol treasury (2-of-3)'],
-          ['Wildcard resolver', RESOLVER_ADDRESS, 'Ethereum · resolver for rwa-id.eth (ENSIP-10 + CCIP-Read)'],
+          ['RWAIDRecords', RECORDS_ADDRESS, 'Robinhood Chain · per-name addresses on other chains and text records'],
+          ['Offchain resolver', RESOLVER_ADDRESS, 'Ethereum · resolver for rwa-id.eth (ENSIP-10 + CCIP-Read, signature-bound)'],
           ['Gateway signer', SIGNER_ADDRESS, 'The key the resolver trusts for gateway answers'],
+          ['Wildcard resolver V2 (retired)', LEGACY_RESOLVER, 'Ethereum · rwa-id.eth’s resolver until 13 Oct 2026'],
           ['RWAIDv3 (legacy)', V3_ADDRESS, 'Ethereum · the 2026-08 registry; its names still resolve'],
         ],
       },
@@ -82,7 +85,7 @@ export const DOCS_SECTIONS = [
         items: [
           { h: 'ENS finds the resolver', p: 'rwa-id.eth points at one wildcard resolver on Ethereum. Under ENSIP-10 it answers for every name beneath it, so joe.acme.rwa-id.eth resolves without ever being registered as an ENS name.' },
           { h: 'The resolver defers off-chain', p: 'The resolver reverts with OffchainLookup (EIP-3668). The wallet follows it to the RWA ID gateway, which reads the registry on Robinhood Chain and signs its answer.' },
-          { h: 'Ethereum verifies the answer', p: 'The signed response goes back to resolveWithProof on Ethereum, which checks it against the resolver’s trusted signer before returning an address.' },
+          { h: 'Ethereum verifies the answer', p: 'The signed response goes back to resolveWithProof on Ethereum. The signature covers this resolver, the exact question, the exact answer and an expiry of minutes, so an answer cannot be altered, replayed for another name, or reused later.' },
         ],
       },
       {
@@ -103,11 +106,19 @@ export const DOCS_SECTIONS = [
           'transferable name that changes hands resolves to its new owner with no further transaction.',
       },
       {
+        t: 'dl',
+        items: [
+          ['Ethereum address', 'Always the wallet that holds the name, read from the registry. Nobody can point it elsewhere.'],
+          ['Other EVM chains', 'The holder’s record for that chain (ENSIP-11), else their default-EVM record, else the holding wallet.'],
+          ['Bitcoin, Solana and others', 'Whatever the holder set in RWAIDRecords, in the ENSIP-9 binary format.'],
+          ['Text records', 'url, email, com.twitter, description and any other key the holder sets (ENSIP-5).'],
+          ['Ownership changes', 'Records are stored per holder, so when a name changes hands or is revoked, the previous holder’s records stop resolving immediately.'],
+        ],
+      },
+      {
         t: 'note',
         tone: 'info',
-        text:
-          'Today the resolver answers addr() for Ethereum addresses. Per-chain addresses (Bitcoin, Solana and ' +
-          'other EVM chains) need a new resolver and are on the roadmap.',
+        text: 'Holders set their records at rwa-id.com/names. ENSv2 note: names under rwa-id.eth are answered by its wildcard resolver, not registered in ENS, so they need no migration.',
       },
     ],
   },

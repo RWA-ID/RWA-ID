@@ -6,7 +6,7 @@ import { linkTo } from '../lib/nav'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 
 // Addresses on Ethereum link to Etherscan; everything else to Robinhood Chain's explorer.
-const ETHEREUM_ROWS = ['Wildcard resolver', 'RWAIDv3 (legacy)']
+const ETHEREUM_ROWS = ['Offchain resolver', 'Wildcard resolver V2 (retired)', 'RWAIDv3 (legacy)']
 
 function Block({ block }) {
   switch (block.t) {

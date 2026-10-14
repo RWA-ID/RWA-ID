@@ -73,3 +73,15 @@ export const CLAIM_PAID          = event('ClaimPaid')
 export const IDENTITY_REVOKED    = event('IdentityRevoked')
 export const SPONSORSHIP_FUNDED  = event('SponsorshipFunded')
 export const SPONSORSHIP_WITHDRAWN = event('SponsorshipWithdrawn')
+
+// RWAIDRecords on Robinhood Chain (2026-10-13, ownerless): per-name records a
+// holder sets for other chains and text, served through ENS by the gateway and
+// RwaIdOffchainResolver (Ethereum, 0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0).
+export const RECORDS_ADDRESS = '0xb209023C4C4D5c997dEb6A2E672374e358182F37'
+export const RECORDS_ABI = [
+  { name: 'addr', type: 'function', stateMutability: 'view', inputs: [{ name: 'node', type: 'bytes32' }, { name: 'coinType', type: 'uint256' }], outputs: [{ name: '', type: 'bytes' }] },
+  { name: 'text', type: 'function', stateMutability: 'view', inputs: [{ name: 'node', type: 'bytes32' }, { name: 'key', type: 'string' }], outputs: [{ name: '', type: 'string' }] },
+  { name: 'setRecords', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'node', type: 'bytes32' }, { name: 'coinTypes', type: 'uint256[]' }, { name: 'addrs', type: 'bytes[]' }, { name: 'keys', type: 'string[]' }, { name: 'values', type: 'string[]' }], outputs: [] },
+]
+
+export const TRANSFER_EVENT = { name: 'Transfer', type: 'event', anonymous: false, inputs: [{ name: 'from', type: 'address', indexed: true }, { name: 'to', type: 'address', indexed: true }, { name: 'tokenId', type: 'uint256', indexed: true }] }
