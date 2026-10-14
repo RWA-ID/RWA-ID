@@ -1,293 +1,543 @@
 # RWA ID
 
-> Human-Readable Identity Infrastructure for Tokenized Real World Assets
+> Readable ENS names for the client wallets of tokenized-asset platforms
 
-[![Website](https://img.shields.io/badge/Website-rwa--id.com-00BCD4?style=flat-square)](https://rwa-id.com)
-[![Whitepaper](https://img.shields.io/badge/Whitepaper-Read-00BCD4?style=flat-square)](https://github.com/rwa-id/RWA-ID/blob/main/whitepaper.md)
-[![Technical Docs](https://img.shields.io/badge/Technical-Overview-00BCD4?style=flat-square)](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-2f775dbae2778094a03fd6b967edbdfa)
-[![Status](https://img.shields.io/badge/Status-Live%20on%20Mainnet-success?style=flat-square)](https://rwa-id.com)
+[![Website](https://img.shields.io/badge/Website-rwa--id.com-CCFF00?style=flat-square&labelColor=0B0C0A)](https://rwa-id.com)
+[![Docs](https://img.shields.io/badge/Docs-rwa--id.com%2Fdocs-CCFF00?style=flat-square&labelColor=0B0C0A)](https://rwa-id.com/docs)
+[![Whitepaper](https://img.shields.io/badge/Whitepaper-Read-CCFF00?style=flat-square&labelColor=0B0C0A)](whitepaper.md)
+[![Chain](https://img.shields.io/badge/Registry-Robinhood%20Chain%204663-FF5A1F?style=flat-square&labelColor=0B0C0A)](https://robinhoodchain.blockscout.com/address/0x85B09167aB330641f8e5F73E2e904C75FDFa8132)
 
-**RWA ID** is a non-custodial identity layer that enables RWA platforms to issue human-readable, soulbound or transferable ENS subdomains for clients wallets, tokenized assets, and issuers. Built on proven Web3 standards (ENS + EIP-3668 CCIP-Read), RWA ID provides universal identity resolution across wallets and dApps.
+**RWA ID** is a non-custodial identity layer for real-world-asset platforms. A
+platform registers a namespace, allowlists its clients, and each client wallet
+claims a name like:
 
 ```
-joe.test.rwa-id.eth
+joe.yourplatform.rwa-id.eth
 ```
+
+Every name is a real ENS name backed by an ERC-721 token. The registry lives on
+**Robinhood Chain**; names resolve through the standard ENS path on **Ethereum**
+(ENSIP-10 wildcard + EIP-3668 CCIP-Read), so they work in MetaMask, Coinbase
+Wallet, Rainbow, Uniswap, Trust, Zerion, Ledger, Safe and any other app that reads
+`.eth`, with no SDK and no integration.
+
+RWA ID never collects personal data, performs KYC, asserts identity claims or
+custodies assets.
 
 ---
 
-## 🎯 Problem
+## Contents
 
-RWA platforms today face critical identity infrastructure challenges:
-
-- **Opaque wallet addresses** create poor user experience
-- **Fragmented identities** across chains hinder interoperability
-- **No shared infrastructure** forces every platform to build internally
-- **Poor legibility** for assets and participants reduces institutional trust
-
-**Result:** Every platform builds identity systems independently. Nothing interoperates.
-
----
-
-## ✨ Solution
-
-RWA ID provides neutral, shared identity infrastructure that:
-
-- ✅ **Issues human-readable names** (e.g., `joe.test.rwa-id.eth`)
-- ✅ **Resolves in all major wallets** (MetaMask, Trust, Rainbow, Uniswap)
-- ✅ **USDC claim fees** with automatic 70/30 platform/protocol split on-chain
-- ✅ **Soulbound or transferable** — configurable per project
-- ✅ **Requires no custody** or personal data collection
-- ✅ **Uses proven standards** (ENS + EIP-3668 CCIP-Read)
+- [Status](#-status)
+- [Deployed contracts](#-deployed-contracts)
+- [How it works](#-how-it-works)
+- [Fees and sponsorship](#-fees-and-sponsorship)
+- [Names, records and resolution](#-names-records-and-resolution)
+- [Identity NFTs and artwork](#-identity-nfts-and-artwork)
+- [Reserved namespaces](#-reserved-namespaces)
+- [The RWAIDRH token](#-the-rwaidrh-token)
+- [Governance](#-governance)
+- [Architecture](#-architecture)
+- [Developer setup](#-developer-setup)
+- [Repository structure](#-repository-structure)
+- [Version history](#-version-history)
+- [Regulatory posture](#-regulatory-posture)
+- [Contact](#-contact)
 
 ---
 
 ## 🚀 Status
 
-**v3 is live on Ethereum mainnet** — deployed 1 Aug 2026, block 25661280
+**v4.1 is live on Robinhood Chain (chain id 4663)** since 13 October 2026.
 
-- ✅ Production contracts deployed and verified on Etherscan
-- ✅ Governed by a 2-of-3 Safe multisig ([details](#-governance))
-- ✅ 25 top RWA platform slugs reserved ([list](#-reserved-namespaces))
-- ✅ Identity NFTs render name + artwork fully on-chain ([details](#-token-metadata))
-- ✅ CCIP-Read gateway live at `gateway.rwa-id.com`, pointed at v3
-- ✅ ENS wildcard resolver active — names resolve in MetaMask & Trust Wallet
-- ✅ Platform identity management dashboard operational
+- ✅ Registry **RWAIDv4.1** deployed, verified on Blockscout, owned by the protocol Safe
+- ✅ Claim fees in **USDG**, with a real 0.50 USDG floor and a 70/30 on-chain split
+- ✅ **Sponsor pools** and **`claimFor`**: platforms can pay for, and deliver, their clients' names
+- ✅ **Platform artwork**: one image per namespace, or the on-chain RWA ID identity card
+- ✅ **RWAIDRecords**: holders add Bitcoin, Solana, other-chain addresses and text records
+- ✅ **New Ethereum resolver** for `rwa-id.eth`: every gateway answer is signature-bound and expires within an hour
+- ✅ **36 namespaces reserved** until 12 October 2029
+- ✅ **RWAIDRH token** launched 14 October 2026, with launch liquidity permanently locked
+- ✅ Site, console and docs at [rwa-id.com](https://rwa-id.com) and [dashboard.rwa-id.com](https://dashboard.rwa-id.com)
+- ✅ Names issued under **v3 on Ethereum keep resolving**
 
-### What changed in v3
+---
 
-v2 never implemented `tokenURI()`, so every identity appeared on marketplaces as an
-untitled, imageless *"RWA ID #n"*. That could not be patched — v2 has no baseURI
-setter and is not behind a proxy — so v3 was deployed to replace it.
+## 📡 Deployed contracts
 
-| | v2 | v3 |
+Every address is also recorded in
+[`protocol/deployments/robinhood.json`](protocol/deployments/robinhood.json).
+
+### Robinhood Chain (4663) — registry, records, token
+
+| Contract | Address | Role |
 |---|---|---|
-| Token metadata | none — `tokenURI()` returned `""` | name, description, artwork and traits, rendered on-chain |
-| `claim()` takes | `bytes32 nameHash` | `string label` — so the contract can name what it mints |
-| Label casing | any bytes accepted | lowercase `[a-z0-9-_]` enforced |
-| Collection metadata | none | `contractURI()`, plus ERC-4906 update signalling |
+| **RWAIDv4.1** | [`0x85B09167aB330641f8e5F73E2e904C75FDFa8132`](https://robinhoodchain.blockscout.com/address/0x85B09167aB330641f8e5F73E2e904C75FDFa8132) | Registry: namespaces, allowlists, identity NFTs, fees, sponsor pools. Block 87872447 |
+| **RWAIDRecords** | [`0xb209023C4C4D5c997dEb6A2E672374e358182F37`](https://robinhoodchain.blockscout.com/address/0xb209023C4C4D5c997dEb6A2E672374e358182F37) | Per-name addresses on other chains and text records. Ownerless |
+| **USDG** | [`0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) | Claim-fee token (Paxos, 6 decimals) |
+| **Protocol Safe** | [`0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`](https://robinhoodchain.blockscout.com/address/0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab) | 2-of-3 owner and protocol treasury (same address on Ethereum) |
+| **RWAIDRH token** | [`0xdd0A628926C0C944A603eD93bca325161cD4efc6`](https://robinhoodchain.blockscout.com/token/0xdd0A628926C0C944A603eD93bca325161cD4efc6) | RWA IDENTITY, 50B supply, no owner, no mint |
+| RWAIDLiquidityLock | [`0x91442eda74bD0d3D0965F058d74c75A6f7E1308f`](https://robinhoodchain.blockscout.com/address/0x91442eda74bD0d3D0965F058d74c75A6f7E1308f) | Holds LP position #1442175 forever; fees to the Safe |
+| RWAIDPlatformUnlock | [`0x6709D7b104B7283fac92DBbD9AFbd90Af7c233F0`](https://robinhoodchain.blockscout.com/address/0x6709D7b104B7283fac92DBbD9AFbd90Af7c233F0) | 36 platform token buckets. Owned by the Safe |
+| Founder VestingWallet | [`0x0A048950f66C14b517DF6B02F04f8db2d9F9f91d`](https://robinhoodchain.blockscout.com/address/0x0A048950f66C14b517DF6B02F04f8db2d9F9f91d) | OpenZeppelin VestingWallet, 14 Oct 2027 → 13 Oct 2030 |
+| Uniswap v3 pool | [`0xe03f2d01Ca196B80C1048c7FC0213322400D05D3`](https://robinhoodchain.blockscout.com/address/0xe03f2d01Ca196B80C1048c7FC0213322400D05D3) | WETH / RWAIDRH, 1% fee tier |
+| RWAIDLauncher | [`0xA36c2328dBcB408D23De5993b25C29aD1f806262`](https://robinhoodchain.blockscout.com/address/0xA36c2328dBcB408D23De5993b25C29aD1f806262) | One-shot launch contract; holds nothing and has no functions |
 
-**Existing allowlists carry over.** The Merkle leaf is unchanged —
-`keccak256(claimer, keccak256(bytes(label)))` — so roots and proof sets generated for
-v2 verify against v3 without regenerating anything.
+### Ethereum mainnet — ENS side
 
----
+| Contract | Address | Role |
+|---|---|---|
+| **RwaIdOffchainResolver** | [`0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0`](https://etherscan.io/address/0x5Bf038c11A81E84795f1078A30A6eCF64fD5E5e0) | Resolver for `rwa-id.eth` since 13 Oct 2026 (ENSIP-10 + CCIP-Read). Safe-owned, Etherscan-verified |
+| Gateway signer | `0xDF8E6a113f98586608C3D7a4eab68a35A97602Af` | The only key the resolver trusts for gateway answers |
+| **Protocol Safe** | [`0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`](https://app.safe.global/home?safe=eth:0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab) | Owns the resolver and the legacy v3 registry |
+| RWAIDv3 (legacy) | [`0x6413e9E6A0D4e05557463A66C34E18192324A2C7`](https://etherscan.io/address/0x6413e9E6A0D4e05557463A66C34E18192324A2C7) | The August 2026 registry. No new projects; its names still resolve |
 
-## 📋 How It Works
+`rwa-id.eth` itself is registered until **25 November 2031**.
 
-### For Platforms (3-Step Integration)
+### Retired
 
-1. **Create Project Namespace**
-   - Platform connects wallet at [rwa-id.com](https://rwa-id.com)
-   - Registers namespace (e.g., `test.rwa-id.eth`) — free to create
-   - Optionally sets a USDC claim fee (70% goes to platform treasury 30% to RWA ID)
-
-2. **Upload Allowlist**
-   - Submit CSV mapping names to wallet addresses (two columns: `name,wallet`)
-   - Names must be lowercase `[a-z0-9-_]` — see [Label rules](#label-rules)
-   - System computes the Merkle root in the browser, commits it on-chain, and pins the
-     proofs to IPFS via Pinata. Only the root goes on-chain, so client lists never
-     touch a server the platform does not control
-   - A shareable claim URL is generated automatically:
-     `rwa-id.com/?claim=[projectId]&proofs=[cid]`
-
-3. **Clients Claim Identities**
-   - Platform shares the claim URL with clients (email, dashboard, etc.)
-   - Client opens the URL — their wallet is auto-detected from the proof file, no manual input needed
-   - Client approves USDC and confirms the claim in two wallet steps
-   - Identity NFT minted — resolves immediately across all ENS wallets, and displays
-     as `client.yourplatform.rwa-id.eth` on marketplaces
-   - Format: `client.yourplatform.rwa-id.eth`
-
-### Label rules
-
-Labels are restricted to lowercase `[a-z0-9-_]`, 1–63 characters, and the contract
-rejects anything else at claim time rather than silently normalising it.
-
-This is not cosmetic. The CCIP-Read gateway lowercases a name before hashing it, so
-under v2 a client allowlisted as `Zac` minted at `keccak("Zac")` while ENS looked up
-`keccak("zac")` — the claim succeeded, nothing errored, and the identity was
-permanently unresolvable. The contract cannot fold the case itself, because the
-Merkle leaf is built from the raw bytes off-chain and rewriting them would invalidate
-every proof. So it rejects instead, and the dashboard normalises when building the
-tree. The same character set is what keeps on-chain rendering safe, since `tokenURI()`
-interpolates the label into both JSON and SVG.
-
-### Revenue Sharing Model
-
-Every claim pays a USDC fee — always split 70/30 on-chain between the platform treasury and RWA ID. The fee amount depends on whether the platform set one:
-
-| Scenario | Effective Fee | Platform (70%) | RWA ID (30%) |
-|----------|--------------|----------------|--------------|
-| Platform sets no fee | $0.50 minimum enforced by contract | $0.35 | $0.15 |
-| Platform sets $1.00 | $1.00 | $0.70 | $0.30 |
-| Platform sets $5.00 | $5.00 | $3.50 | $1.50 |
-
-The $0.50 minimum is enforced at the contract level — it cannot be bypassed. If a platform sets `claimFee = 0`, the contract automatically applies the minimum and distributes it with the same 70/30 split.
+| Contract | Address | Why |
+|---|---|---|
+| RWAIDv4.0 | `0xb99c4333DEb732B30D83f03cAb92fe855B21999a` (Robinhood Chain) | Replaced by v4.1 the same day, before any project existed, for the relaunch NFT artwork. Nothing reads it |
+| RwaIdWildcardResolverV2 | `0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1` (Ethereum) | `rwa-id.eth`'s resolver until 13 Oct 2026. Its signatures were not bound to the question or answer — see [Resolution](#-names-records-and-resolution) |
+| Old gateway signer | `0xC9fACcf3a77b553375017efFEe441D9770fAA723` | Trusted only by the retired V2 resolver |
+| RWAIDv2 | `0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2` (Ethereum) | No `tokenURI`; superseded by v3 in August 2026 |
 
 ---
 
-## 📡 Deployed Contracts
+## 📋 How it works
 
-### Ethereum Mainnet
+### For platforms
 
-| Contract | Address | |
-|----------|---------|---|
-| **RWAIDv3** | [`0x6413e9E6A0D4e05557463A66C34E18192324A2C7`](https://etherscan.io/address/0x6413e9E6A0D4e05557463A66C34E18192324A2C7) | current registry |
-| **Wildcard Resolver v2** | [`0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1`](https://etherscan.io/address/0x765FB675AC33a85ccb455d4cb0b5Fb1f2D345eb1) | unchanged by the v3 cutover |
-| **Protocol Safe** | [`0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`](https://etherscan.io/address/0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab) | owner + protocol treasury |
-| **USDC** | [`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) | |
-| RWAIDv2 | [`0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2`](https://etherscan.io/address/0xD0B565C7134bDB16Fc3b8A9Cb5fdA003C37930c2) | superseded — no token metadata |
+Everything happens in the console at [rwa-id.com/console](https://rwa-id.com/console)
+(or [dashboard.rwa-id.com](https://dashboard.rwa-id.com)), on Robinhood Chain. You
+need a little ETH on Robinhood Chain for gas; each transaction costs a fraction of a
+cent.
 
-The resolver did **not** need redeploying for the v3 cutover: it stores no registry
-address, and `resolveWithProof` only checks that the gateway's response was signed by
-`trustedSigner`. Repointing the protocol at a new registry is a gateway configuration
-change.
+1. **Create your namespace.** `createProject(slug, treasury, claimFee, transferable)`
+   registers `yourplatform.rwa-id.eth`. Creating it is free. The connecting wallet
+   becomes the project owner — a Safe is the right choice for anything long-lived,
+   and ownership can be transferred later with `transferProjectOwnership`.
+2. **Publish an allowlist.** Upload a CSV of `name,wallet` pairs. The console builds
+   the Merkle tree in your browser, pins the proof set to IPFS, and writes only the
+   32-byte root on-chain with `updateMerkleRoot`. Client lists never touch an RWA ID
+   server.
+3. **Decide who pays.** Let clients pay the claim fee in USDG, or fund a
+   [sponsor pool](#-fees-and-sponsorship) so they claim free.
+4. **Share the claim link, or deliver.** Send clients
+   `rwa-id.com/claim/?claim=<projectId>&proofs=<cid>&v=4`, or deliver names straight
+   to their wallets with `claimFor`. A delivered name can only land in the wallet it
+   was allowlisted for.
 
-### Sepolia Testnet
+```
+name,wallet
+joe,0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+ana,0x8a3e2F95A120C3d0B35F46aC77B2F9A5C028dE81
+```
 
-| Contract | Address |
-|----------|---------|
-| **RWAIDv2** | [`0xb0b023c9eD18dCD573B8befC851974f20126ab92`](https://sepolia.etherscan.io/address/0xb0b023c9eD18dCD573B8befC851974f20126ab92) |
-| **Wildcard Resolver v2** | [`0xE591Cbe3802e3E4908731E3D4B056cd8b08AE520`](https://sepolia.etherscan.io/address/0xE591Cbe3802e3E4908731E3D4B056cd8b08AE520) |
-| **MockUSDC** | [`0x4CcF36b273dA06D70B235d605639b3f8a6CA6B03`](https://sepolia.etherscan.io/address/0x4CcF36b273dA06D70B235d605639b3f8a6CA6B03) |
+```
+leaf = keccak256(abi.encodePacked(wallet, keccak256(bytes(label))))   // unchanged since v2
+```
 
-### CCIP-Read Gateway
+Publishing a new root replaces the old one; names already claimed are unaffected.
+To add clients, load the live proof set, append, and publish again. The claim page
+checks that its proof set matches the live root, so a stale link fails with a clear
+message instead of a reverted transaction.
 
-**Gateway URL:** `https://gateway.rwa-id.com/{sender}/{data}.json`
+> **Privacy:** the pinned proof set is public and permanent — it contains every name
+> and wallet on the allowlist. Use pseudonymous labels rather than clients' legal
+> names unless you have a lawful basis to publish them.
 
-The resolver implements [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668) to enable off-chain resolution lookups with on-chain signature verification.
+### For clients
 
-The gateway reads the registry and signs each answer with the trusted signer key
-registered on the resolver (`0xC9fACcf3a77b553375017efFEe441D9770fAA723`). Rotating
-that key requires a Safe transaction calling `setTrustedSigner` — until that lands,
-rotating it alone would break resolution for every name.
+1. Open the claim link from your platform. Your wallet is detected from the proof set.
+2. Confirm the claim (plus a USDG approval if the claim is not sponsored).
+3. The identity NFT mints to your wallet and the name resolves immediately.
+4. Optionally add Bitcoin, Solana and profile records at
+   [rwa-id.com/names](https://rwa-id.com/names).
 
----
+### What a platform controls
 
-## 🔐 Governance
-
-Both the registry and the protocol treasury are controlled by a **2-of-3 Safe
-multisig** (Safe v1.4.1) at
-[`0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`](https://app.safe.global/home?safe=eth:0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab).
-
-| | |
-|---|---|
-| Threshold | 2 of 3 signers |
-| Owns | RWAIDv3 (`owner`) and the protocol fee treasury |
-| Cannot | touch platform treasuries, seize identities, or move client funds |
-
-### What requires the multisig
+All of these are signed by the project owner; none needs the protocol.
 
 | Function | Effect |
 |---|---|
-| `reserveNamespace` / `batchReserveNamespaces` | Reserve a slug for a platform |
-| `releaseNamespace` | Release a reservation early |
-| `setMinimumClaimFee` | Change the protocol-wide fee floor (currently $0.50) |
-| `setProtocolFeePercent` | Change the protocol split (currently 30%, bounded 10–50% by the contract) |
-| `setProtocolTreasury` | Redirect the protocol's share of fees |
-| `setBaseURI` / `setContractURI` | Repoint artwork away from the on-chain renderer |
-
-Everything a **platform** does — creating a project, publishing an allowlist, setting
-its own claim fee and treasury, pausing, revoking — is controlled by that platform's
-own wallet and needs no protocol involvement.
-
-### Proposing a multisig transaction
-
-```bash
-# Dry run — prints the slugs, calldata and Safe tx hash, signs nothing
-npx hardhat run scripts/reserve-slugs-v3.js --network mainnet
-
-# Sign and queue it for the other owners to approve
-SUBMIT=1 npx hardhat run scripts/reserve-slugs-v3.js --network mainnet
-```
-
-Owners then approve and execute at
-[app.safe.global](https://app.safe.global/transactions/queue?safe=eth:0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab).
-
-> **Note:** the Safe UI may show freshly-verified contract calls as raw hex rather
-> than a decoded function name. Before approving, confirm the target is the registry,
-> `value` is 0, and the operation is `CALL` — never `DELEGATECALL`.
+| `updateMerkleRoot` | Publish or replace the allowlist |
+| `updateClaimFee` / `updateTreasury` | Change the fee and where your share goes |
+| `fundSponsorship` / `withdrawSponsorship` | Fill or drain the project's sponsor pool |
+| `claimFor` | Deliver a name to an allowlisted wallet (callable by anyone) |
+| `setProjectTransferable` / `setTokenTransferable` | Soulbound or transferable, per project and per token |
+| `setProjectImage` | Your own artwork on every name in the namespace |
+| `pauseProject` / `unpauseProject` | Stop and resume new claims; issued names are untouched |
+| `revokeIdentity` | Burn a name, clear its resolution, retire the label for good |
+| `transferProjectOwnership` | Hand the namespace to another wallet or Safe |
 
 ---
 
-## 🏷️ Reserved Namespaces
+## 💸 Fees and sponsorship
 
-25 RWA platform slugs are reserved on v3 until **1 August 2027**. Reservations are
-held at `0x0000000000000000000000000000000000000001` — an address nobody controls — so
-the namespace is locked against squatters until the real platform claims it.
+Every claim pays a fee in **USDG**, split on-chain at the moment of the claim and
+transferred directly — the registry never escrows fees.
 
-| Category | Reserved slugs |
-|----------|----------------|
+```
+fee = max(project claimFee, minimumClaimFee)      // minimumClaimFee = 0.50 USDG
+platform treasury ← 70%      protocol Safe ← 30%
+```
+
+| Project fee | Client pays | Platform (70%) | Protocol (30%) |
+|---|---|---|---|
+| 0 or anything below 0.50 | 0.50 USDG | 0.35 | 0.15 |
+| 1.00 USDG | 1.00 | 0.70 | 0.30 |
+| 5.00 USDG | 5.00 | 3.50 | 1.50 |
+
+`effectiveClaimFee(projectId)` returns what a claim costs right now. The floor is new
+in v4: v3 charged any non-zero fee as set, so a fee of one unit paid the protocol
+nothing.
+
+### Sponsor pools
+
+- `fundSponsorship(projectId, amount)` moves USDG into the project's pool. **Anyone**
+  can fund any project; **only the project owner** can `withdrawSponsorship`.
+- When the pool holds at least one full fee, **the pool pays and the claimer pays
+  nothing**. A partly funded pool is left alone rather than split across two payers.
+- The 70/30 split still runs, so the platform's 70% returns to its own treasury: a
+  sponsored claim costs the platform only the protocol's 30% (0.15 USDG at the floor).
+- Sponsor pools are walled off: the Safe's `rescueToken` can only move USDG **above**
+  `totalSponsorBalance`.
+
+### `claimFor`
+
+The Merkle leaf already binds each name to its wallet, so any caller can submit
+`claimFor(projectId, wallet, label, proof)` and the identity still mints to that
+wallet. Combined with a sponsor pool, a platform can issue names to its whole
+allowlist and pay the gas itself; clients never sign anything.
+
+| Failure | Meaning |
+|---|---|
+| `Invalid proof` | Name or wallet does not match the published root |
+| `Already claimed` | That wallet already holds a name in this project (one per project) |
+| `Name revoked` | The label was retired by the platform |
+| `Project paused` | Claiming is switched off |
+
+---
+
+## 🧭 Names, records and resolution
+
+### Naming rules (ENSIP-15)
+
+| | Rule |
+|---|---|
+| **Slug** | 3–32 chars: `a–z`, `0–9`, interior hyphens; no `--` in positions 3–4. Uppercase is folded. Permanent once created |
+| **Label** | 1–63 chars: lowercase `a–z`, `0–9`, hyphens; underscores only as a leading run; no `--` in positions 3–4 |
+
+Labels are hashed exactly as given and never normalised, because the Merkle leaf is
+built from the raw string off-chain. Anything a wallet's ENS normaliser would change
+or reject is therefore **rejected** at claim time, so the allowlist, the mint and ENS
+resolution agree by construction. (v2 minted `Zac` at `keccak("Zac")` while ENS
+looked up `keccak("zac")`; v3 accepted `a_b` and `ab--cd`, which mint but never
+resolve. v4's test suite checks labels against viem's ENS normaliser on 1,000 random
+inputs.)
+
+### How a name resolves
+
+1. **ENS finds the resolver.** `rwa-id.eth` points at `RwaIdOffchainResolver` on
+   Ethereum, which answers for every name beneath it (ENSIP-10).
+2. **The resolver defers off-chain.** It reverts with `OffchainLookup` (EIP-3668) to
+   `https://gateway.rwa-id.com/{sender}/{data}.json`.
+3. **The gateway reads Robinhood Chain and signs.** It checks RWAIDv4.1 first, and
+   the legacy v3 registry on Ethereum only when v4.1 has no project for the slug — so
+   a slug created on v3 later can never shadow a v4 namespace. Any RPC failure is an
+   error and nothing is signed.
+4. **Ethereum verifies.** `resolveWithProof` accepts the answer only if it was signed
+   by a trusted signer over:
+
+```
+keccak256(0x1900 ‖ resolver ‖ expires ‖ keccak256(request) ‖ keccak256(result))
+```
+
+A signature is valid only for this resolver, this exact question, this exact answer,
+and until it expires — and expiry is capped on-chain at **1 hour**
+(`MAX_VALIDITY`). The retired V2 resolver signed a gateway-supplied hash that was not
+bound to the question or the answer, which is why it was replaced.
+
+```
+rootNode    = namehash("rwa-id.eth")
+projectNode = keccak256(rootNode ‖ keccak256(slug))
+nameNode    = keccak256(projectNode ‖ keccak256(label))
+```
+
+### What a name resolves to
+
+| Record | Source |
+|---|---|
+| **ETH address** (coin 60) | Always the wallet holding the name, from `resolveAddr(node)`. Nobody — not even the holder — can point it elsewhere |
+| **Other EVM chains** (ENSIP-11) | The holder's record for that chain, else their default-EVM record (`0x80000000`), else the holding wallet |
+| **Bitcoin, Solana, others** (ENSIP-9) | Whatever the holder set in RWAIDRecords |
+| **Text records** (ENSIP-5) | `url`, `email`, `com.twitter`, `description` and any other key the holder sets |
+
+**RWAIDRecords** keys every record by `(node, holder)`. A record belongs to the
+wallet that wrote it, so when a transferable name changes hands or a name is revoked,
+the previous holder's records stop resolving immediately, and the new holder starts
+from empty. It has no owner, no upgrade path and no fees. Limits: 128-byte addresses,
+64-byte keys, 1,024-byte text values.
+
+Because `resolveAddr` returns the **current token holder**, a transferable name that
+changes hands resolves to its new owner with no further transaction.
+
+> **ENSv2:** names under `rwa-id.eth` are answered by its wildcard resolver, not
+> registered individually in ENS, so they need no migration.
+
+### Reading identities from your own systems
+
+```js
+// Resolve the ordinary ENS way (viem follows the OffchainLookup itself)
+const wallet = await client.getEnsAddress({ name: 'joe.acme.rwa-id.eth' })
+```
+
+```
+// Registry reads on Robinhood Chain — no API key, no webhook, no vendor in the path
+projectIdBySlugHash(keccak256(slug))  → projectId
+nameNodeFromHash(projectId, hash)     → node
+resolveAddr(node)                     → holder (0 if unclaimed or revoked)
+claimed(projectId, wallet)            → bool
+revoked(projectId, nameHash)          → bool
+fullName(tokenId)                     → "joe.acme.rwa-id.eth"
+projectUsage(projectId)               → owner, totalClaimed, protocolFees
+```
+
+---
+
+## 🖼️ Identity NFTs and artwork
+
+Every name is an ERC-721 token whose metadata the registry renders **on-chain** —
+no metadata server, no IPFS dependency:
+
+```
+name        joe.acme.rwa-id.eth
+image       the RWA ID identity card, drawn on-chain as SVG (v4.1 relaunch design)
+attributes  Namespace · Label · Project ID · Transferability · Claimed (date)
+```
+
+- **Platform artwork.** `setProjectImage(projectId, uri)` replaces the image for the
+  whole namespace with an `ipfs://`, `https://` or `ar://` link (max 512 chars,
+  validated so it cannot inject into the JSON). Clearing it restores the on-chain card.
+- **Marketplace refresh.** Image changes emit ERC-4906 `BatchMetadataUpdate`.
+- **Soulbound** (transfers revert) or **transferable**, per project and per token.
+- `contractURI()` supplies collection metadata; the Safe's `setBaseURI` /
+  `setContractURI` remain as escape hatches.
+
+---
+
+## 🏷️ Reserved namespaces
+
+**36 slugs** are reserved on v4.1 until **12 October 2029**, held at
+`0x0000000000000000000000000000000000000001` — an address nobody controls — so they
+cannot be squatted. Each also has a [platform token bucket](#platform-buckets-20).
+
+| Group | Slugs |
+|---|---|
 | Institutional / securities | `securitize` `ondo` `superstate` `backed` `archax` |
 | Credit / lending | `centrifuge` `maple` `goldfinch` `credix` `clearpool` |
 | Real estate | `realt` `lofty` `propy` `homebase` `tangible` |
 | Infrastructure / compliance | `polymesh` `tokeny` `realio` `defactor` `fasset` |
 | Commodities / funds | `openeden` `swarm` `bitbond` `finblox` `parcl` |
+| Robinhood | `robinhood` `robinhoodchain` `robinhood-chain` `hood` |
+| Robinhood Chain infrastructure | `paxos` `bitgo` `morpho` |
+| Robinhood Chain markets | `arcus` `lighter` `rialto` `meridian` |
 
-**If one of these is yours:** [get in touch](#-contact) and the Safe will reassign the
-reservation to your wallet with `reserveNamespace(slug, yourWallet, duration)`. You can
-then create the project yourself — no other party can take the name in the meantime.
+The list lives in
+[`protocol/config/reserved-namespaces.js`](protocol/config/reserved-namespaces.js), the
+single source for the deploy script, the token buckets and the website
+(`scripts/export-reserved.js` writes the site's copy; a test fails if they drift).
 
-**Any other slug is open** and can be registered permissionlessly at
-[rwa-id.com](https://rwa-id.com). Reservations are not permanent: `createProject`
-deletes an expired reservation and lets the next caller through, so anything not
-claimed by August 2027 becomes available.
+> These namespaces are held to protect the companies named from impersonation. A
+> reservation does not mean the company is affiliated with, endorses, or has
+> partnered with RWA ID. Company names and logos are trademarks of their respective
+> owners.
+
+**If one is yours,** email [partner@rwa-id.com](mailto:partner@rwa-id.com). Once the
+company is verified, the Safe calls `reserveNamespace(slug, yourWallet, duration)` so
+only you can create the project. **Every other slug is open** and can be registered
+permissionlessly. Reservations expire: after 12 October 2029, `createProject` clears
+a lapsed reservation and lets the next caller through.
 
 ---
 
-## 🖼️ Token Metadata
+## 🪙 The RWAIDRH token
 
-Every v3 identity renders its own metadata on-chain — no metadata server, no IPFS
-dependency, nothing to keep alive:
+**RWA IDENTITY (RWAIDRH)** —
+[`0xdd0A628926C0C944A603eD93bca325161cD4efc6`](https://robinhoodchain.blockscout.com/token/0xdd0A628926C0C944A603eD93bca325161cD4efc6)
+on Robinhood Chain. ERC-20 with ERC-20 Permit and burn; 18 decimals.
+
+- **Supply:** 50,000,000,000, minted once. **No owner and no mint function.**
+- **Launched** 14 October 2026 in a single transaction
+  ([`0x0647cb61…9107`](https://robinhoodchain.blockscout.com/tx/0x0647cb6178c83811c21f14cf0dd990e877b50e3bc70b48cb69c04358f7279107),
+  block 88065614) by `RWAIDLauncher`. Everything happens in its constructor, so
+  nobody could act between the token existing and its liquidity being in place: no
+  one could create or price the pool first. The launcher holds nothing afterwards.
+- **Not required for anything.** Registering, claiming and resolving names never
+  touch RWAIDRH; fees are paid in USDG. Holding RWAIDRH is not a share in the company
+  and carries no claim on its revenue.
+
+### Allocation
+
+| Share | Amount | Held by | Terms |
+|---|---|---|---|
+| **40%** | 20B | Uniswap v3 pool, position #1442175 in `RWAIDLiquidityLock` | Launch liquidity. **Locked permanently** |
+| **20%** | 10B | `RWAIDPlatformUnlock` | 36 platform buckets, earned by usage |
+| **15%** | 7.5B | Protocol Safe | Treasury |
+| **15%** | 7.5B | Protocol Safe | Open-platform pool, for platforms outside the reserved list |
+| **10%** | 5B | Founder `VestingWallet` → vault.ensgiant.eth | Nothing before 14 Oct 2027, then linear to 13 Oct 2030 |
+
+### Launch liquidity (40%)
+
+The pool opened single-sided: the position holds only RWAIDRH, priced from the
+opening price upward, so buyers move the price into it. The position NFT was minted
+straight into **RWAIDLiquidityLock**, which:
+
+- has **no function** that withdraws a position, decreases liquidity or transfers the NFT;
+- has **no owner** who could add one;
+- exposes `collect(tokenId)`, callable by anyone, which always sends accrued trading
+  fees to the protocol Safe.
+
+The fork test asserts that the lock's only state-changing functions are `collect` and
+`onERC721Received`, and that `decreaseLiquidity` on the position reverts.
+
+### Platform buckets (20%)
+
+`RWAIDPlatformUnlock` holds one bucket per reserved namespace (≈277.8M RWAIDRH each).
+A bucket always pays the namespace's **current project owner** on the registry.
+
+1. **Activate** — Safe-only, once the real company is verified and has created the
+   project. Manual on purpose: a lapsed reservation could otherwise let anyone
+   register the slug and collect.
+2. **Release** — anyone can call `release(slug)`. What is releasable is the
+   *smaller* of two curves:
 
 ```
-name        alice.acme.rwa-id.eth
-image       on-chain SVG — the RWA·ID mark over the full name
-attributes  Namespace · Label · Project ID · Transferability · Claimed (date)
+earned  = amount × min(claims since activation, 10,000) / 10,000
+timeCap = amount × min(time since activation, 730 days) / 730 days
 ```
 
-`contractURI()` supplies collection-level metadata to marketplaces the same way.
-`setBaseURI` and `setContractURI` exist as escape hatches if artwork should later
-point elsewhere; setting a baseURI takes precedence over the on-chain renderer, and
-emits ERC-4906 so marketplaces re-read.
+Usage decides whether a platform gets its tokens at all; time limits how fast. Every
+v4 claim pays at least the 0.50 USDG floor, so manufactured usage has a real cost, and
+the time cap bounds what it could extract per month.
+
+3. **Exits** (Safe-only, visible on-chain): `cancel` returns only the *unearned*
+   remainder of an activated bucket — what the platform earned stays theirs;
+   `sweep` returns a bucket nobody activated by **14 April 2028**.
+
+### Founder vesting (10%)
+
+An unmodified OpenZeppelin `VestingWallet`: start **14 October 2027** (a 12-month
+cliff from launch), duration 1,095 days, fully vested **13 October 2030**.
+
+### Links
+
+[Swap on Uniswap](https://app.uniswap.org/swap?chain=robinhood&inputCurrency=NATIVE&outputCurrency=0xdd0A628926C0C944A603eD93bca325161cD4efc6) ·
+[DexScreener](https://dexscreener.com/robinhood/0xe03f2d01ca196b80c1048c7fc0213322400d05d3) ·
+[GeckoTerminal](https://www.geckoterminal.com/robinhood/pools/0xe03f2d01Ca196B80C1048c7FC0213322400D05D3) ·
+[Blockscout](https://robinhoodchain.blockscout.com/token/0xdd0A628926C0C944A603eD93bca325161cD4efc6) ·
+[Token list](https://rwa-id.com/tokenlist.json) ·
+[Logo](https://rwa-id.com/token/rwaidrh-512.png) ·
+[rwa-id.com/#token](https://rwa-id.com/#token)
+
+> Nothing in this repository is investment advice or an offer to sell. Always check
+> the contract address before you trade.
+
+---
+
+## 🔐 Governance
+
+The protocol is controlled by a **2-of-3 Safe** at
+`0xa28743bD38C9c951910d8FA9812c48ab5CDf75Ab`, deployed at the same address on
+Robinhood Chain and Ethereum. The v4.1 registry, the offchain resolver and
+RWAIDPlatformUnlock use **Ownable2Step**, so the Safe had to accept each one
+explicitly. A mistyped address can never strand them.
+
+| Safe owns | Chain |
+|---|---|
+| RWAIDv4.1 registry (`owner`) and the protocol fee treasury | Robinhood Chain |
+| RWAIDPlatformUnlock (`owner`) | Robinhood Chain |
+| 15B RWAIDRH (treasury + open-platform pool) and the LP trading fees | Robinhood Chain |
+| RwaIdOffchainResolver (`owner`) | Ethereum |
+| RWAIDv3 (legacy registry) | Ethereum |
+
+Owned by **nobody**: the RWAIDRH token, RWAIDLiquidityLock, RWAIDRecords and the
+launcher. The founder VestingWallet belongs to its beneficiary.
+
+### What the Safe can do
+
+| Contract | Function | Effect |
+|---|---|---|
+| Registry | `reserveNamespace` / `batchReserveNamespaces` / `releaseNamespace` | Reserve a slug for a wallet, or release it |
+| Registry | `setMinimumClaimFee` | Change the protocol-wide fee floor (0.50 USDG) |
+| Registry | `setProtocolFeePercent` | Change the protocol split (30%), bounded **10–50%** by the contract |
+| Registry | `setProtocolTreasury` | Redirect the protocol's share |
+| Registry | `setBaseURI` / `setContractURI` | Repoint artwork away from the on-chain renderer |
+| Registry | `rescueToken` | Recover tokens sent by mistake — never sponsor-pool funds |
+| Resolver | `setSigner` / `setUrls` | Rotate the gateway signing key, or move the gateway URL |
+| PlatformUnlock | `activate` / `cancel` / `sweep` / `addBuckets` | Run the platform buckets as described above |
+
+### What the Safe cannot do
+
+- Mint, transfer or revoke any client's name.
+- Change a project's allowlist, fee, treasury, artwork or transferability.
+- Touch a platform's treasury or sponsor pool.
+- Point a name's ETH address anywhere but its holder.
+- Withdraw the locked liquidity, mint RWAIDRH, or take back a bucket's earned tokens.
+
+The floor is the one protocol setting that affects every project: raising
+`setMinimumClaimFee` raises what a claim costs wherever the project fee is below it.
+
+### Before approving a Safe transaction
+
+The Safe UI may show calls to freshly verified contracts as raw hex. Confirm the
+target address, that `value` is 0, and that the operation is `CALL`, never
+`DELEGATECALL`.
+
+### Audit status
+
+The contracts are verified on Blockscout and Etherscan and covered by the test suite
+below, including fuzzing labels against the ENS normaliser and a launch rehearsal on
+a fork of live Robinhood Chain. **No third-party audit has been published yet.**
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────┐
-│   Wallet    │
-│  (User)     │
-└──────┬──────┘
-       │ Resolve: joe.test.rwa-id.eth
-       ↓
-┌──────────────────┐
-│  ENS Registry    │
-│  (Ethereum)      │
-└──────┬───────────┘
-       │ Wildcard Resolver → 0x765F...
-       ↓
-┌──────────────────┐
-│ CCIP-Read        │
-│ Gateway          │
-│ gateway.rwa-id.com│
-└──────┬───────────┘
-       │ resolveAddr(node) on RWAIDv3
-       │   → ownerOf(nodeToTokenId[node]), so a transfer
-       │     is reflected without re-registering anything
-       │ Returns signed (node, address, hash, sig)
-       ↓
-┌──────────────────┐
-│ resolveWithProof │
-│ verifies sig     │
-│ returns address  │
-└──────────────────┘
+ Wallet ── resolve joe.acme.rwa-id.eth ──▶ ENS registry (Ethereum)
+                                              │ resolver of rwa-id.eth
+                                              ▼
+                                  RwaIdOffchainResolver (Ethereum)
+                                              │ revert OffchainLookup (EIP-3668)
+                                              ▼
+                              gateway.rwa-id.com  (Cloudflare Worker)
+                         ┌────────────────────┴────────────────────┐
+                         ▼                                         ▼
+          RWAIDv4.1 + RWAIDRecords                     RWAIDv3 (legacy, Ethereum)
+          (Robinhood Chain) — read first               only if v4.1 has no such slug
+                         └────────────────────┬────────────────────┘
+                                              │ signed (result, expires, sig)
+                                              ▼
+                       resolveWithProof (Ethereum): checks signer, binding, expiry
+                                              │
+                                              ▼
+                                       address / record
 ```
+
+Gateway endpoints:
+
+| Path | |
+|---|---|
+| `GET /{sender}/{data}.json`, `POST /` | EIP-3668 lookups |
+| `GET /resolve?name=joe.acme.rwa-id.eth` | Debug: what would be signed, and from which registry |
+| `GET /health` | Signers, registries, resolver, records and RPC status |
 
 ---
 
-## 🛠️ Developer Setup
+## 🛠️ Developer setup
 
 ```bash
 git clone https://github.com/RWA-ID/RWA-ID.git
@@ -296,159 +546,138 @@ npm install
 cp .env.example .env   # fill in your keys
 ```
 
-Every command in this section runs from `protocol/`. The apps and the gateway each
-have their own `package.json` and are installed separately — see
-[Repository Structure](#-repository-structure).
+Each top-level folder (`protocol/`, `apps/dashboard/`, `gateway/`) has its own
+`package.json` and installs separately.
 
-### Run Tests
+### Tests
 
 ```bash
-npx hardhat test        # 193 passing
+npx hardhat test                    # 219 passing, 7 pending (the fork suites)
+FORK_ROBINHOOD=1 npx hardhat test test/RWAIDLauncher.fork.test.js   # token launch on a fork
+FORK_ROBINHOOD=1 npx hardhat run scripts/fork-check-v4.js           # v4 launch rehearsal
 ```
 
 | Suite | Covers |
 |---|---|
-| `test/RWAIDv2.test.js` (68) | Registry logic v3 inherits unchanged — projects, reservations, allowlists, fee splitting, soulbound enforcement, revocation, ownership, CCIP-Read resolver |
-| `test/RWAIDv3.test.js` (44) | v3's own surface — label validation, claiming by label, `tokenURI`, `contractURI`, the `baseURI` escape hatch, ERC-4906 |
-| `test/RWAIDv4.test.js` (61) | v4 — the enforced fee floor, sponsor pools, `claimFor`, platform artwork, labels checked against viem's ENS normalizer on 1,000 random inputs, v3 event/ABI compatibility |
-| `test/RWAIDPlatformUnlock.test.js` (20) | The platform token unlock — funding, Safe-only activation, usage × time release, cancel/sweep, and the fixed-supply token |
+| `RWAIDv2.test.js` | Registry logic later versions inherit — projects, reservations, allowlists, fee split, soulbound, revocation, ownership |
+| `RWAIDv3.test.js` | On-chain metadata, label rules, `contractURI`, `baseURI` escape hatch, ERC-4906 |
+| `RWAIDv4.test.js` | Fee floor, sponsor pools, `claimFor`, platform artwork, ENS labels fuzzed against viem's normaliser, v3 event/ABI compatibility |
+| `RWAIDv4.art.test.js` | The v4.1 on-chain identity card |
+| `RWAIDRecords.test.js` | Holder-only writes, ETH = holder, records follow ownership |
+| `RwaIdOffchainResolver.test.js` | Signature binding to resolver, request, result and expiry; the 1-hour cap |
+| `RWAIDPlatformUnlock.test.js` | Funding, Safe-only activation, usage × time release, cancel / sweep, the fixed-supply token |
+| `reservedNamespaces.test.js` | The 36 slugs are valid and the site's copy has not drifted |
+| `RWAIDLauncher.fork.test.js` | The token launch against live Uniswap v3: split, price, permanent lock, a buy, a sell, fees to the Safe |
 
-v4 is also rehearsed end to end against live Robinhood Chain state (real USDG,
-the real Safe and deployer), on a local fork that sends nothing:
+The gateway has unit tests (`cd gateway && npm test`) and two end-to-end scripts
+against local forks (`scripts/e2e-fork.mjs`, `scripts/e2e-offchain.mjs`). Note that
+Hardhat cannot fork Ethereum mainnet reliably; the gateway scripts use Foundry's
+`anvil`.
 
-```bash
-FORK_ROBINHOOD=1 npx hardhat run scripts/fork-check-v4.js
-```
+### Deploy scripts
 
-The v3 suite is written around the failure modes that motivated v3. It asserts that
-uppercase labels are rejected rather than folded (folding would invalidate every
-Merkle proof, and accepting them recreates the v2 bug where a name minted at
-`keccak("Zac")` while ENS looked up `keccak("zac")`); that a label cannot break out of
-the JSON or SVG that `tokenURI()` interpolates it into; and that a leaf built the v2
-way still verifies, which is what lets existing allowlists carry over.
+| Script | |
+|---|---|
+| `deploy-v4.js` | Deploy RWAIDv4 to Robinhood Chain, reserve the 36 slugs, hand ownership to the Safe |
+| `deploy-records.js` | Deploy RWAIDRecords |
+| `deploy-offchain-resolver.js` | Deploy RwaIdOffchainResolver on Ethereum |
+| `launch-token.js` | Print the RWAIDRH launch plan; `LAUNCH=1` sends it |
+| `export-reserved.js` | Write the reserved list the website renders |
+| `render-art.js` | Render the on-chain artwork to PNGs to check by eye |
+| `check-dashboard-abi.mjs` | Diff the console's hand-written ABI against the compiled contract |
 
-The suite has been mutation-tested — re-allowing uppercase, making `tokenURI` return
-`""` as v2 did, and ignoring the `baseURI` override each produce failures in exactly
-the tests that should catch them.
+Launch parameters live in `config/token-launch.js`, shared by the fork test and the
+launch script so the two cannot drift.
 
-Separately, a live-data check runs the same path against the **real pinned proof set**
-rather than fixtures:
-
-```bash
-npx hardhat run scripts/v3-metadata-check.js
-```
-
-It fetches a v2-era proof set from IPFS, publishes its root to a fresh v3 deployment
-unchanged, and claims with the original untouched proofs.
-
-### Deploy
+### Website and console
 
 ```bash
-npx hardhat run scripts/deploy-v3.js --network mainnet    # dry-runs locally without --network
+cd apps/dashboard && npm install && npm run build
+npx wrangler pages deploy dist --project-name rwa-id-dashboard --branch main
 ```
 
-Prints the deployed address, the block to use as the log-scan start, and the
-follow-up steps (gateway env var, dashboard constant, Etherscan verification).
-
-### Guard the dashboard ABI
-
-```bash
-npx hardhat compile && node scripts/check-dashboard-abi.mjs
-```
-
-The console declares its own ABI rather than importing artifacts, so a signature
-change can pass a build and only fail in a user's wallet. This diffs the two.
+One Vite build serves both [rwa-id.com](https://rwa-id.com) (site, docs, claim,
+names, console at `/console`) and [dashboard.rwa-id.com](https://dashboard.rwa-id.com)
+(console at `/`). It reads Robinhood Chain straight from the browser — no backend, no
+indexer. Cloudflare Pages is not git-connected: merging to `main` deploys nothing.
 
 ---
 
-## 📦 Repository Structure
-
-One repository holds every part of RWA ID. Each top-level folder installs and
-deploys on its own; there is no shared workspace.
+## 📦 Repository structure
 
 ```
-protocol/                        — Registry contracts, tests, deploy scripts (Hardhat)
+protocol/                          Contracts, tests, deploy scripts (Hardhat)
   contracts/
-    RWAIDv4.sol                  — Robinhood Chain registry (USDG, fee floor, sponsorship, claimFor, platform art)
-    RWAIDPlatformUnlock.sol      — Platform token buckets: earned by claims, released over time
-    RWAIDToken.sol               — Fixed-supply protocol token (no owner, no mint)
-    RWAIDv3.sol                  — Mainnet registry (adds on-chain token metadata)
-    RWAIDv2.sol                  — Superseded registry (no tokenURI)
-    RwaIdWildcardResolverV2.sol  — ENSIP-10 wildcard resolver (CCIP-Read / EIP-3668)
-    mocks/MockUSDC.sol           — Test USDC (Sepolia only)
-    RwaIdRegistry.sol            — v1 contract (legacy)
-    RwaIdWildcardResolver.sol    — v1 resolver (legacy)
+    RWAIDv4.sol                    Registry on Robinhood Chain (deployed as v4.1)
+    RWAIDRecords.sol               Per-holder address and text records
+    RwaIdOffchainResolver.sol      Ethereum resolver for rwa-id.eth, signature-bound
+    RWAIDToken.sol                 RWAIDRH: fixed supply, permit, burnable, no owner
+    RWAIDLauncher.sol              One-transaction token launch
+    RWAIDLiquidityLock.sol         Permanent Uniswap v3 LP lock; fees to the Safe
+    RWAIDPlatformUnlock.sol        Platform buckets: earned by claims, released over time
+    RWAIDv3.sol                    Legacy Ethereum registry
+    RWAIDv2.sol                    Superseded registry
+    RwaIdWildcardResolverV2.sol    Retired resolver
+    RwaIdRegistry.sol, RwaIdWildcardResolver.sol   v1 (legacy)
   config/
-    reserved-namespaces.js       — The 32 slugs reserved on v4 (one token bucket each)
-  scripts/
-    deploy-v4.js                 — Deploy RWAIDv4 to Robinhood Chain and hand it to the Safe
-    fork-check-v4.js             — Rehearse the v4 launch on a fork of Robinhood Chain
-    deploy-v3.js                 — Deploy RWAIDv3
-    deploy-mainnet.js            — Deploy v2 (historical)
-    deploy-sepolia.js            — Deploy to Sepolia testnet
-    reserve-slugs-v3.js          — Queue v3 slug reservations in the Safe
-    reserve-slugs.js             — v2 equivalent (historical)
-    verify-reservations.js       — Verify reserved slugs on-chain
-    set-trusted-signer.js        — Update gateway signer via Safe multisig
-    v3-metadata-check.js         — Verify v3 metadata + v2 allowlist compatibility
-    check-dashboard-abi.mjs      — Diff the console's ABI against the compiled contract
-  test/
-    RWAIDv2.test.js              — 68 tests: inherited registry logic
-    RWAIDv3.test.js              — 44 tests: metadata, label rules, escape hatches
-    RWAIDv4.test.js              — 61 tests: fee floor, sponsorship, claimFor, artwork, ENS labels
-    RWAIDPlatformUnlock.test.js  — 20 tests: usage-earned, time-capped token release
+    reserved-namespaces.js         The 36 reserved slugs (single source)
+    token-launch.js                RWAIDRH launch parameters
+  deployments/robinhood.json       Every live address
+  scripts/                         See Deploy scripts
+  test/                            See Tests
 apps/
-  dashboard/                     — Platform console, dashboard.rwa-id.com (Vite, Cloudflare Pages)
-  site/                          — Marketing site, rwa-id.com
-gateway/                         — CCIP-Read gateway, gateway.rwa-id.com
+  dashboard/                       rwa-id.com + dashboard.rwa-id.com (Vite, Cloudflare Pages)
+  site/                            Previous marketing site (retired October 2026)
+gateway/                           CCIP-Read gateway, gateway.rwa-id.com (Cloudflare Worker)
 whitepaper.md
 ```
 
-`apps/dashboard`, `apps/site` and `gateway` were separate repositories until
-October 2026 and were imported with their full history (`git log -- apps/site`).
+---
+
+## 🕰️ Version history
+
+| Version | Chain | Date | What changed |
+|---|---|---|---|
+| v1 | Linea | Jan 2025 | Hash-only registry and wildcard resolver |
+| v2 | Ethereum | Apr 2025 | Projects, Merkle allowlists, USDC fees, soulbound option. No `tokenURI` |
+| v3 | Ethereum | 1 Aug 2026 | On-chain metadata, labels claimed as strings, lowercase enforced. 25 slugs reserved |
+| v4.0 | Robinhood Chain | 13 Oct 2026 | Superseded the same day, never used |
+| **v4.1** | Robinhood Chain | 13 Oct 2026 | USDG, real fee floor, sponsor pools, `claimFor`, ENSIP-15 labels, platform art, `projectUsage`, Ownable2Step, 36 reserved slugs |
+| Records + resolver | RH Chain + Ethereum | 13 Oct 2026 | Multichain and text records; signature-bound resolver replaces V2 |
+| RWAIDRH | Robinhood Chain | 14 Oct 2026 | Token launch, permanent LP lock, platform buckets, founder vesting |
+
+The Merkle leaf has not changed since v2, so allowlists carry across versions.
 
 ---
 
-## 🔒 Regulatory Posture
+## 🔒 Regulatory posture
 
-RWA ID operates as **infrastructure only** with minimal regulatory surface area:
-
-| What RWA ID **Does** | What RWA ID **Does NOT Do** |
-|---------------------|---------------------------|
-| ✅ Provide identity references | ❌ Collect personal data |
-| ✅ Enable human-readable names | ❌ Perform KYC/verification |
-| ✅ Facilitate on-chain resolution | ❌ Assert identity claims |
-| ✅ Support platform operations | ❌ Custody funds or assets |
+| RWA ID **does** | RWA ID **does not** |
+|---|---|
+| ✅ Issue readable names for wallets | ❌ Collect personal data |
+| ✅ Resolve them on-chain through ENS | ❌ Perform KYC or verification |
+| ✅ Let platforms gate access on a public check | ❌ Assert identity claims |
+| ✅ Split claim fees on-chain | ❌ Custody funds or assets |
 
 ---
 
 ## 📞 Contact
 
 **Founder:** Hector Morel
-**Email:** [partner@rwa-id.com](mailto:partner@rwa-id.com)
-**Website:** [rwa-id.com](https://rwa-id.com)
+**Partnerships:** [partner@rwa-id.com](mailto:partner@rwa-id.com)
+**Website:** [rwa-id.com](https://rwa-id.com) · **X:** [@rwaidentity](https://x.com/rwaidentity)
 
----
+RWA ID is operated by Only Buy Bitcoin LLC, a Delaware LLC doing business as RWA ID.
 
 ## 📄 License
 
 MIT
 
----
+## 🙏 Built with
 
-## 🙏 Built With
-
-- [ENS (Ethereum Name Service)](https://ens.domains/)
-- [EIP-3668 (CCIP-Read)](https://eips.ethereum.org/EIPS/eip-3668)
-- [OpenZeppelin Contracts v5](https://github.com/OpenZeppelin/openzeppelin-contracts)
-- [Ethereum](https://ethereum.org/)
-
----
-
-<div align="center">
-
-**RWA ID** — Identity Infrastructure for the Tokenized Economy
-
-[Website](https://rwa-id.com) • [Whitepaper](whitepaper.md) • [Technical Docs](https://www.notion.so/RWA-ID-Technical-Overview-Reference-Implementation-v2-4563759f55214aa7989dbb882ef08e47?source=copy_link) • [Contact](mailto:partner@rwa-id.com)
-
-</div>
+[ENS](https://ens.domains/) ·
+[EIP-3668 CCIP-Read](https://eips.ethereum.org/EIPS/eip-3668) ·
+[OpenZeppelin Contracts v5](https://github.com/OpenZeppelin/openzeppelin-contracts) ·
+[Uniswap v3](https://uniswap.org/) ·
+[Robinhood Chain](https://robinhood.com/) ·
+[Cloudflare Workers](https://workers.cloudflare.com/)
