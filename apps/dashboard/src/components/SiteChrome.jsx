@@ -22,7 +22,7 @@ export const MENUS = [
     cta: 'Claim a name', ctaHref: '/claim',
     links: [
       { t: 'Claim with your link', d: 'Wallet detected automatically', href: '/claim' },
-      { t: 'Where it works', d: 'MetaMask, Trust, Rainbow and more', href: '/#wallets' },
+      { t: 'Manage your name', d: 'Add Bitcoin, Solana and profile records', href: '/names' },
       { t: 'Soulbound or transferable', d: 'Set by the platform that issued it', href: '/#platforms' },
       { t: 'What we never collect', d: 'No personal data, no KYC', href: '/#standards' },
     ],
@@ -143,7 +143,7 @@ export function SiteHeader() {
 
 const FOOTER = [
   { h: 'Platforms', links: [{ t: 'Register', href: '/console' }, { t: 'How it works', href: '/#how' }, { t: 'Reserved', href: '/#reserved' }] },
-  { h: 'Clients', links: [{ t: 'Claim a name', href: '/claim' }, { t: 'Wallets', href: '/#wallets' }] },
+  { h: 'Clients', links: [{ t: 'Claim a name', href: '/claim' }, { t: 'My names', href: '/names' }, { t: 'Wallets', href: '/#wallets' }] },
   { h: 'Developers', links: [{ t: 'Docs', href: '/docs' }, { t: 'GitHub', href: GITHUB }, { t: 'Whitepaper', href: WHITEPAPER }] },
   { h: 'Legal', links: [{ t: 'Terms', href: '/terms' }, { t: 'Privacy', href: '/privacy' }, { t: 'Refunds', href: '/refunds' }] },
 ]

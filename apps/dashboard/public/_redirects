@@ -2,6 +2,7 @@
 # fallback. First match wins, so these must stay above the catch-all.
 /claim      /claim/index.html     200
 /console    /console/index.html   200
+/names      /names/index.html     200
 /docs       /docs/index.html      200
 /privacy    /privacy/index.html   200
 /terms      /terms/index.html     200

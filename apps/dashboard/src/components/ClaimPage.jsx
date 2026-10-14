@@ -228,6 +228,7 @@ export default function ClaimPage({ projectId, cid, version }) {
             normally paste your address.
           </p>
           <div className="row">
+            {name && <a className="btn btn-lime" href="/names" onClick={linkTo}>Add Bitcoin, Solana & more →</a>}
             {name && <a className="btn btn-ink" href={`https://app.ens.domains/${full}`} target="_blank" rel="noreferrer">View in ENS ↗</a>}
             {tokenId && <a className="btn" href={explorerToken(RWAID_ADDRESS, tokenId)} target="_blank" rel="noreferrer">Token ↗</a>}
             {claimTx.hash && <a className="btn" href={explorerTx(claimTx.hash)} target="_blank" rel="noreferrer">Transaction ↗</a>}
